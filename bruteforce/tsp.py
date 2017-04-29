@@ -40,7 +40,6 @@ def create_distance_matrix(points):
         for j, point2 in points.items():
             if i < j:
                 matrix[i][j] = find_distance(points[i], points[j])
-                matrix[j][i] = matrix[i][j]
 
     return matrix
 
@@ -58,7 +57,9 @@ def find_distance(point1, point2):
 def find_path_distance(path, matrix):
     distance = 0
     for i in range(1, len(path)):
-        distance += matrix[path[i-1]][path[i]]
+        point1 = min(path[i-1], path[i])
+        point2 = max(path[i-1], path[i])
+        distance += matrix[point1][point2]
 
     return distance
 
@@ -67,8 +68,9 @@ def create_edge_matrix(path):
     path_length = len(path)
     edge_matrix = [[0]*path_length for _ in range(path_length)]
     for i in range(1, path_length):
-        edge_matrix[path[i-1]][path[i]] = 1
-        #edge_matrix[path[i]][path[i-1]] = 1
+        point1 = min(path[i-1], path[i])
+        point2 = max(path[i-1], path[i])
+        edge_matrix[point1][point2] = 1
 
     return edge_matrix
 
@@ -147,7 +149,6 @@ def main():
  
     # Create the edge matrix
     edge_matrix = find_tsp(matrix)
-    print_matrix(edge_matrix)
 
     # Create the graph
     graph = create_graph(edge_matrix, points)
