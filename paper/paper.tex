@@ -8,26 +8,45 @@
 \usepackage{clrscode3e}
 \usepackage{parskip}
 \usepackage{mathptmx}
-\usepackage{booktabs}
 
-\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
-\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
-\documentclass[11pt]{book}
+\documentclass[12pt]{report}
 
 \begin{document}
 
-\title{Solving the Traveling Salesman Problem}
+\title{Exploring the Traveling Salesman Problem}
 \author{Brennan Hoeting}
 \date{}
 \maketitle 
 
-\section{The problem}
-The traveling salesman problem can be described as follows:
-given a list of cities, find the route that visits each city
-exactly once and returns to the starting city with the least possible total
-distance traveled.  
+\section*{Abstract}
+This paper will explore the Traveling Salesman Problem.
+We will first obtain an understanding of the problem, that
+is, we will explain the problem, examine its input and output,
+and identify what makes solving this problem particularly
+challenging.  Next, we will present a naive brute force solution
+to the problem and analyze it's efficiency and correctness.  We
+will improve upon that solution by comparing and contrasting
+more efficient approaches to solving the problem.  We will choose
+an efficient solution to present, explain, and compare runtimes
+against naive solution.  We will prove that our efficient solution
+can solve a subclass of instances of the Traveling Salesman Problem.
+Finally, Python code for the naive and efficient solutions will be
+presented and demonstrated.
 
-\section{Brute force solution}
+\section*{Understanding the Problem}
+The traveling salesman problem can be described as follows:
+Given a set of cities, where there is a distance between
+each pair of cities, find a tour one could take that 
+begins at a starting city, visits each destination city
+exactly once, and returns to the starting city with the
+minimum possible total distance traveled. \par
+
+The problem input is a matrix that defines the distance
+between each pair of cities.  We will denote this as
+the distance matrix $D_{ij}$, where 
+
+
+\section*{A Naive Brute Force Solution}
 
 
   
