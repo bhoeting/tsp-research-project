@@ -89,11 +89,11 @@ def main():
         points[i] = all_points[i]
 
     # Generate TSP graph
-    G = find_tsp(points)
+    graph = find_tsp(points)
 
     # Draw it
-    nx.draw(G,
-            nx.get_node_attributes(G, 'pos'),
+    nx.draw(graph,
+            nx.get_node_attributes(graph, 'pos'),
             with_labels=False,
             node_size=20)
 
