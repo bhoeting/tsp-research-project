@@ -4,6 +4,7 @@ import random
 import itertools
 import networkx as nx
 import matplotlib.pyplot as plt
+from pandas import *
 
 
 def read_tsp(filename):
@@ -23,79 +24,139 @@ def read_tsp(filename):
     return points
 
 
+def create_distance_matrix(points):
+    """
+    Create a matrix from a dict of points
+    where matrix[i, j] is the distance
+    between point i and point j, where
+    i and j also corrospond to the keys 
+    in points
+    """
+    n = len(points) + 1
+
+    matrix = [[0]*n for _ in range(n)]
+
+    for i, point1 in points.items():
+        for j, point2 in points.items():
+            if i < j:
+                matrix[i][j] = find_distance(points[i], points[j])
+                matrix[j][i] = matrix[i][j]
+
+    return matrix
+
+
+def print_matrix(matrix):
+    print(DataFrame(matrix))
+
+
 def find_distance(point1, point2):
     return math.sqrt(
             ((point2[1] - point1[1]) ** 2) +
             ((point2[0] - point1[0]) ** 2))
 
 
-def path_distance(path, points):
-    distance = find_distance(points[path[-1]], points[path[0]])
-    for index in range(len(path)):
-        if index == len(path) - 1:
-            break
-        distance += find_distance(points[path[index]], points[path[index+1]])
+def find_path_distance(path, matrix):
+    distance = 0
+    for i in range(1, len(path)):
+        distance += matrix[path[i-1]][path[i]]
 
     return distance
 
 
-def find_tsp(points):
-    # Grab the starting key and remove the
-    # starting point from the points dict
-    starting_index = next(iter(points.keys()))
-    destination_points = points.copy()
-    del destination_points[starting_index]
+def create_edge_matrix(path):
+    path_length = len(path)
+    edge_matrix = [[0]*path_length for _ in range(path_length)]
+    for i in range(1, path_length):
+        edge_matrix[path[i-1]][path[i]] = 1
+        #edge_matrix[path[i]][path[i-1]] = 1
+
+    return edge_matrix
+
+
+def find_tsp(distance_matrix):
+
+    # Use the first point as the starting point
+    # (this is not zero because the TPS dataset
+    # is indexed at 1.
+    start = 1
+    n = len(distance_matrix)
+
+    # The destination points will be every point
+    # except the starting point.  By "point",
+    # we man index.
+    destinations = range(start + 1, n)
 
     # Generate all the permutations of the destination points.
-    # The starting point will be inserted at the beginnging of
-    # the paths before finding the smallest distance
-    permutations = itertools.permutations(destination_points)
+    # It's important to note that the starting index isn't
+    # included, as it should be at the start of every path.
+    # This will be (n-1)! possible paths.
+    paths = itertools.permutations(destinations)
 
-    # Find the path with the least distance
+    # Find the path with the least distance.
     shortest_path = None
-    smallest_distance = sys.maxsize
-    for path in permutations:
-        path = (starting_index,) + path
-        test_distance = path_distance(path, points)
-        if test_distance < smallest_distance:
-            smallest_distance = test_distance
-            shortest_path = path
+    shortest_distance = sys.maxsize
+    for path in paths:
+        # Complete the route by add the starting point
+        # to the beginning and end of the path.
+        path = (start,) + path + (start,)
 
-    # Create a graph and add each point
-    G = nx.Graph()
-    G.add_node(starting_index, pos=points[starting_index])
-    for label in shortest_path:
-        G.add_node(label, pos=points[label])
+        # If the path is shorter than all other
+        # test paths, set it as the shortest path.
+        distance = find_path_distance(path, distance_matrix)
+        if distance < shortest_distance:
+            shortest_path = path
+            shortest_distance = distance
+
+    # Using the shortest path, we will create
+    # another matrix where matrix[i][j] will
+    # either be 1 if there is an edge between
+    # i and j, or 0 otherwise.
+    return create_edge_matrix(path)
+    
+
+def create_graph(edge_matrix, points):
+    # Create a graph and add each point.
+    graph = nx.Graph()
+    for point, position in points.items():
+        if point >= 8: break
+        graph.add_node(point, pos=points[point])        
 
     # Add the edges
-    G.add_edge(shortest_path[-1], starting_index)
-    for index in range(len(shortest_path)):
-        if index == len(shortest_path) - 1:
-            break
-        else:
-            G.add_edge(shortest_path[index], shortest_path[index+1])
-
-    return G
+    for i in range(1, len(edge_matrix)):
+        for j in range(1, len(edge_matrix)):
+            if edge_matrix[i][j] == 1:
+                graph.add_edge(i, j)
+            
+    return graph
 
 
 def main():
     # Read the TSP data
-    all_points = read_tsp('test.tsp')
+    points = read_tsp('test.tsp')
 
-    # Grab 6 random points
-    points = {}
-    indicies = random.sample(range(1, len(all_points)), 6)
-    for i in indicies:
-        points[i] = all_points[i]
+    # Create the matrix
+    matrix = create_distance_matrix(points)    
 
-    # Generate TSP graph
-    graph = find_tsp(points)
+    # Reduce the matrix to 8x8 as
+    # the BF is too slow for any
+    # additional verticies 
+    size = 8
+    matrix = matrix[:size]
+    for i in range(len(matrix)):
+        matrix[i] = matrix[i][:size]
+ 
+    # Create the edge matrix
+    edge_matrix = find_tsp(matrix)
+    print_matrix(edge_matrix)
+
+    # Create the graph
+    graph = create_graph(edge_matrix, points)
 
     # Draw it
     nx.draw(graph,
             nx.get_node_attributes(graph, 'pos'),
-            with_labels=False,
-            node_size=20)
+            with_labels=True,
+            node_size=120)
 
     plt.show()
 
