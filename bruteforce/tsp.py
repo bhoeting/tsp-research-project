@@ -111,7 +111,7 @@ def find_tsp(distance_matrix):
     # another matrix where matrix[i][j] will
     # either be 1 if there is an edge between
     # i and j, or 0 otherwise.
-    return create_edge_matrix(path)
+    return create_edge_matrix(shortest_path)
     
 
 def create_graph(edge_matrix, points):
