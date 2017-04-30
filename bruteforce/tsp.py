@@ -1,10 +1,10 @@
 import sys
 import math
-import random
-import itertools
+import operator
+from itertools import combinations, permutations, chain 
 import networkx as nx
 import matplotlib.pyplot as plt
-from pandas import *
+from pandas import DataFrame
 
 
 def read_tsp(filename):
@@ -22,6 +22,12 @@ def read_tsp(filename):
             elif "NODE_COORD_SECTION" in line:
                 reading_points = True
     return points
+
+
+def powerset(iterable):
+    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+    s = list(iterable)
+    return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
 
 
 def create_distance_matrix(points):
@@ -75,7 +81,7 @@ def create_edge_matrix(path):
     return edge_matrix
 
 
-def find_tsp(distance_matrix):
+def brute_force(distance_matrix):
 
     # Use the first point as the starting point
     # (this is not zero because the TPS dataset
@@ -92,7 +98,7 @@ def find_tsp(distance_matrix):
     # It's important to note that the starting index isn't
     # included, as it should be at the start of every path.
     # This will be (n-1)! possible paths.
-    paths = itertools.permutations(destinations)
+    paths = permutations(destinations)
 
     # Find the path with the least distance.
     shortest_path = None
@@ -109,19 +115,76 @@ def find_tsp(distance_matrix):
             shortest_path = path
             shortest_distance = distance
 
-    # Using the shortest path, we will create
-    # another matrix where matrix[i][j] will
-    # either be 1 if there is an edge between
-    # i and j, or 0 otherwise.
-    return create_edge_matrix(shortest_path)
+    return shortest_path
+
     
+def held_karp(distance_matrix):
+    cache = {}
+    n = len(distance_matrix) - 1
+
+    # Distance helper function
+    def dist(i, j):
+        return distance_matrix[min(i, j)][max(i, j)]
+
+    print_matrix(distance_matrix)
+
+    def print_cache():
+        print()
+        for key, value in reversed(list(cache.items())):
+            print(key, "=>", value)
+        print()
+
+    # Initialize ranges
+    subset_sizes = range(1, n-1)
+    destinations = range(2, n+1)
+
+    # Add the base cases to the cache
+    for d in destinations:
+        cache[(d, ())] = (distance_matrix[1][d], (1, ()))
+
+    # Build the cache for each set with length > 0
+    for size in subset_sizes:
+        for d in destinations:
+            for subset in combinations(destinations, size):
+                if d in subset:
+                    continue
+                candidates = []
+                for index, test_subset in enumerate(
+                        combinations(subset, size-1)):
+                    k = subset[size - index - 1]
+                    distance = cache[(d, test_subset)][0] + dist(d, k)
+                    candidates.append((distance, (k, test_subset)))
+                    
+                cache[(d, subset)] = min(
+                        candidates,
+                        key=operator.itemgetter(0))
+                
+    # Add the last solution to the cache
+    candidates = []
+    for index, subset in enumerate(combinations(destinations, n - 2)):
+        k = destinations[n-2-index]
+        candidates.append((cache[(k, subset)][0] + dist(1, k), (k, subset)))
+    last = cache[(1, tuple(destinations))] = min(
+            candidates,
+            key=operator.itemgetter(0))
+ 
+    print_cache()
+
+    # Backtrack through the cache and create an
+    # the optimal path
+    path = [1]
+    while last[1] in cache:
+        path.append(cache[last[1]][1][0])
+        last = cache[last[1]]
+
+    return path
+
 
 def create_graph(edge_matrix, points):
     # Create a graph and add each point.
     graph = nx.Graph()
     for point, position in points.items():
-        if point >= 8: break
-        graph.add_node(point, pos=points[point])        
+        graph.add_node(point, pos=points[point])
 
     # Add the edges
     for i in range(1, len(edge_matrix)):
@@ -132,35 +195,42 @@ def create_graph(edge_matrix, points):
     return graph
 
 
-def main():
-    # Read the TSP data
-    points = read_tsp('test.tsp')
-
-    # Create the matrix
-    matrix = create_distance_matrix(points)    
-
-    # Reduce the matrix to 8x8 as
-    # the BF is too slow for any
-    # additional verticies 
-    size = 8
-    matrix = matrix[:size]
-    for i in range(len(matrix)):
-        matrix[i] = matrix[i][:size]
- 
-    # Create the edge matrix
-    edge_matrix = find_tsp(matrix)
-
-    # Create the graph
+def test_path(path, distance_matrix, points):
+    edge_matrix = create_edge_matrix(path, distance_matrix)
     graph = create_graph(edge_matrix, points)
 
-    # Draw it
     nx.draw(graph,
             nx.get_node_attributes(graph, 'pos'),
             with_labels=True,
             node_size=120)
-
     plt.show()
 
 
+def main():
+    # Read the TSP data
+    P = read_tsp('test.tsp')
+    # Create the distance matrix
+    D = create_distance_matrix(P)    
+
+    # Reduce the matrix to 8x8 as
+    # the BF is too slow for any
+    # additional verticies 
+    global size
+    size = 7
+    D = D[:size]
+    P = P[:size]
+    for i in range(len(D)):
+        D[i] = D[i][:size]
+
+    bf_path = brute_force(D)
+    test_path(bf_path, D, P) 
+    # path2 = held_karp(matrix)
+
+    # print(path1)
+    # print(path2)
+
+    return
+    
+    
 if __name__ == "__main__":
     main()
