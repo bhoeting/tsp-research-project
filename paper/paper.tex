@@ -22,6 +22,7 @@
 \usepackage{bigstrut}
 \usepackage{mathptmx}
 \usepackage{minted}
+\usepackage[pdftex,pdfpagelabels,bookmarks,hyperindex,hyperfigures]{hyperref}
 
 
 % Use borland colorscheme in minted.
@@ -46,11 +47,11 @@ and show why solving this problem particularly challenging.
 We will present and explain a naive brute force solution to the
 problem and analyze it's efficiency.  We will present a better
 method for solving the TSP, the Held---Karp algorithm, and explain
-it in detail mathematically and with psuedocode.  There is a 
-smorgasbord of algorihtms that imporve over the brute force method,
-but they all have their drawbacks and none of them run in polynommial
+it in detail mathematically and with pseudocode.  There is a
+smorgasbord of algorithms that improve over the brute force method,
+but they all have their drawbacks and none of them run in a polynomial
 time complexity.  We will examine a few of these methods in lesser
-detail than Held---Karp and look at situtations in which one algorithm
+detail than Held---Karp and look at situations in which one algorithm
 is favorable over another.
 
 \section{Understanding the Problem}
@@ -58,7 +59,7 @@ is favorable over another.
 The traveling salesman problem can be described as follows:
 Given a set of cities, where there is a distance between
 each pair of cities, find a tour (route) that begins at a
-starting city, visits each destination city exactly once,
+starting city, visits each \textit{destination city} exactly once,
 and returns to the starting city with the minimum possible
 total distance traveled.  We will refer to the tour with the
 minimum possible distance traveled as the \textit{optimal tour}.
@@ -80,19 +81,17 @@ In a \textit{directed} variation of the TSP --- such as one that
 optimizes for minimum total airfair to travel a tour by plane,
 where ticket prices from city $i$ to city $j$ is not necessarily
 equal to the ticket price from city $j$ to city $i$ --- we would
-store the cost in every value of $d_{ij}$ where $i\neq $j, rather
+store a cost in every value of $d_{ij}$ where $i\neq j$, rather
 than storing the costs in a diagnol matrix.  This distinction,
 while helpful to be aware of, minimally affects how the problem is
 solved in the methods we will explore.
-
 \par
 
-See below for a valid 
-input example of our TSP variation.  Notice, for example, that the
-distance between city $1$ and city $4$ is $d_{1,4}=29$.  If we ran
-into a case while implementing the algorithm where we are finding
-the distance between $i$ and $j$ but $j>i$, we simply get the distance
-from $d_{ji}$ instead of $d_{ij}$.
+See below for a valid input example for an undirected TSP variation.
+Notice, for example, that the distance between city $1$ and city $4$ is
+$d_{1,4}=29$.  If we ran into a case while implementing a TSP algorithm
+where we are finding the distance between $i$ and $j$ but $j>i$, we
+simply retrieve the distance from $d_{ji}$ instead of $d_{ij}$.
 \par
 
 \begin{align*}
@@ -110,21 +109,29 @@ from $d_{ji}$ instead of $d_{ij}$.
 \end{align*}
 
 \subsection{Problem Output}
-Similarly, the output for the TSP is also a matrix with the dimensions
-$N\times N$, where $N$ is the number of cities.  We will define this as
+The output for the TSP is also a matrix with the dimensions
+$N\times N$, where $N$ is the number of cities.  We will define the output as
 the edge matrix $E = (e_{ij})$, where $e_{ij}=1$ if the optimal tour involves
-going from city $i$ to city $j$.  Otherwise, $e_{ij}=0$, meaning we will not
-travel from city $i$ to city $j$.  We call this an edge matrix because if
-we had a graph $G=(V,E)$, $V_i$ would represent city $i$ and $E_{ij}$ would
-represent traveling from city $i$ to city $j$ as part of our optimal tour.
+traveling from city $i$ to city $j$.  $e_{ij}=0$ if meaning we will not
+travel from city $i$ to city $j$ along the optimal tour.
+\par
+
+We use an edge matrix because if we had a graph $G=(V,E)$, $V_i$
+would represent city $i$ and $E_{ij}$ would
+represent traveling from city $i$ to city $j$ along the optimal tour.
 If the graph where visualized, each verticy would be positioned at its
-longitude and latitude coordinates, and an edge would connect each pair of
-verticies $v_i$ and $v_j$ where $e_{ij}=1$.  We will see this visual
-representation of the optimal tour as part of the code demonstration.
-Below is an example of valid output for our TSP variation.  Notice that
-$e_{3,4}=1$ implying our optimal tour entails traveling from city $3$ to
+longitude and latitude coordinates and a segment would connect each pair
+of verticies $v_i$ and $v_j$ where $e_{ij}=1$.
+\par
+
+Below is an example of a valid output for our TSP variation.  Notice that
+$e_{3,4}=1$ implying our optimal tour involves traveling from city $3$ to
 city $4$.  Observe that when $i<j$, just as the distance matrix $d_{ij}$,
 the value in $e_{ij}$ is not used, resulting in another diagonal matrix.
+Observe that $e_1$ has two columns that are $1$.  This will always be the
+case for a single $e_i$ where $i$ is the city at we we begin and terminate
+the tour.  In this case, and throughout the paper, the optimal tour will
+always start and end on the first city.
 \par
 
 \begin{align*}
@@ -141,22 +148,22 @@ the value in $e_{ij}$ is not used, resulting in another diagonal matrix.
   \end{blockarray}
 \end{align*}
 
-Now that the Traveling Salesman Problem is defined, we can proceed by
-exploring different methods for computing the optimal solution.
 
 \section{A Naive Brute Force Algorithm}
+\subsection{Overview}
 The brute force method for solving the Traveling Salesman Problem has exactly
 two redeeming qualities: (1) it is quite simple, making implementation
 trivial, and (2) it will produce the correct tour in every TSP instance.
 Unfortunately, for instances that contain more than roughly 10 cities, the
-algorithm does not finish execution.  To see why this is the case, we will
-analyze the psuedocode below:
+algorithm does not finish execution in a reasonable time.  Analyzing the
+pseudocode in (2.2), we can get a good idea of why this is the case.
 \par
 \vspace{0.5cm}
 
 
+\subsection{Pseudocode}
 \begin{codebox}
-\Procname{$\proc{FIND-OPTIMAL-TOUR}(D:$ distance matrix$)$}
+\Procname{$\proc{OPTIMAL-TOUR}(D:$ distance matrix$)$}
 \li $\id{T} \gets$ all permutations of $[2 \twodots \attrib{D}{length}]$
 \li $\id{min-dist} \gets \infty$
 \li $\id{min-tour} \gets \const{nil}$
@@ -171,49 +178,69 @@ analyze the psuedocode below:
             \End
        \End
 
-\li   \Return $\proc{MAKE-EDGE-MATRIX}(t)$
+\li    \Return $\proc{MAKE-EDGE-MATRIX}(\id{min-tour})$
 \end{codebox}
-\vspace{0.5cm}
+ 
+On line $1$, we assign $\id{T}$ to a list containing each permutation of
+the seed list $[2 \twodots \attrib{D}{length}]$.  Each list $T_k$ represents
+a partial tour such that $T_{k,i+1}$ is visited from $T_{k,i}$.  Each element
+$T_{k,i}$ in $T_k$ corresponds to a row index $i$ in the distance matrix $D$.
+\par
 
-On line $1$, we generate a list containing each permutation of
-$[2 \twodots \attrib{D}{length}]$.  Our starting point is at city
-$1$, so we omit it when generating the permutations since it should
-be the first and last element of each possible tour.  On line $5$,
-we insert the starting point $1$ in the front and back of the tour
-before calculating the tour distance.  Then we simply update $\id{min-tour}$
-and $\id{min-dist}$ as we encounter a more optimal tour.
+Notice that we initially exclude our starting city, $1$, from the seed list.
+This is to ensure $T$ only includes permutations the destination cities. Next,
+for each permutation $t$ in $T$, we append $1$ to the front and back of $t$.
+This gives us a complete tour, starting on $1$, visiting each destination
+exactly once, and ending on $1$.  Now we may calculate the total distance,
+$\id{dist}$, of $t$ by calling the $\proc{TOUR-DISTANCE}(D, t)$ procedure,
+which is simply:
+
+\vspace{.27cm}
+\hrule
+\begin{codebox}
+\Procname{$\proc{TOUR-DISTANCE}(t:$ tour, $D:$ distance matrix$)$}
+\li $\id{dist} \gets 0$
+\li \For $\id{i} \gets 2$ to $\attrib{t}{length}$
+\li   \Do
+$\id{dist} \gets \id{dist} + D_{\proc{min}(t_{i-1}, t_i), \proc{max}(t_{i-1}, t_i)}$
+       \End
+\li    \Return $\id{dist}$
+\end{codebox}
+\vspace{.1cm}
+\hrule
+\vspace{.05cm}
+
+If $\id{dist} < \id{min-dist}$, we update
+$\id{min-dist}$ and $\id{min-tour}$.  Once the loop is finished, we
+return an edge matrix to represent the optimal tour using the
+$\proc{MAKE-EDGE-MATRIX}()$ procedure, which creates an edge matrix from a tour
+represented as a list.
 \par
 
 
+\subsection{Runtime}
 Looking at the table below, we can see how the number of potential optimal
 paths increases as the number of cities increases.
 \par
-\vspace{0.25cm}
 
 \bgroup
-\def\arraystretch{1.5}
+\def\arraystretch{1.25}
 \begin{tabular}{c|r}
   Cities $n$ & Possible Tours $(n-1){!}$ \\
   \hline
   \begin{tabular}{c}
-    4 \\
-    5 \\
-    6 \\
-    7 \\
-    8 \\
-    9 \\
-    10 \\
-    11 \\
-    12
+    $4$ \\
+    $5$ \\
+    $\dots$ \\
+    $10$ \\
+    $11$ \\
+    $12$
   \end {tabular}
   &
   \begin{tabular}{r@{\;{=}\;}l}
-    $( 4-1){!}$ & $6$ \\
+    $(4-1){!}$ & $6$ \\
     $(5-1){!}$ & $24$ \\
-    $(6-1){!}$ & $120$ \\
-    $(7-1){!}$ & $720$ \\
-    $(8-1){!}$ & $5040$ \\
-    $(9-1){!}$ & $40,320$ \\
+    $\dots$ & $\dots$ \\
     $(10-1){!}$ & $362,880$ \\
     $(11-1){!}$ & $3,628,800$ \\
     $(12-1){!}$ & $39,916,800$
@@ -221,14 +248,11 @@ paths increases as the number of cities increases.
 
 \end{tabular}
 \egroup
-\vspace{0.25cm}
 
-The runtime of this algorithm is bounded by the amount
-of time it takes to generate each possible tour.
-Therefore, we may informally say that the upper runtime
-bound for the runtime is $O(n!)$, where $n$ is the
+The runtime of this method is upper bounded by the amount
+of time it takes to generate each possible tour, so we can
+say the algorithm is $O((n-1)!) = O(n!)$, where $n$ is the
 number of cities.
-
 \par
 
 
