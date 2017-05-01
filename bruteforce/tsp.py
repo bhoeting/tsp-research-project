@@ -1,4 +1,3 @@
-import sys
 import math
 import operator
 from itertools import combinations, permutations, chain 
@@ -7,7 +6,7 @@ import matplotlib.pyplot as plt
 from pandas import DataFrame
 
 
-def read_tsp(filename):
+def read_tsp(filename, size):
     points = {}
     reading_points = False
 
@@ -18,6 +17,8 @@ def read_tsp(filename):
                 break
             elif reading_points:
                 parts = line.split(' ')
+                if int(parts[0]) > size:
+                    break
                 points[int(parts[0])] = ((int(parts[1]), int(parts[2])))
             elif "NODE_COORD_SECTION" in line:
                 reading_points = True
@@ -82,40 +83,22 @@ def create_edge_matrix(path):
 
 
 def brute_force(distance_matrix):
-
-    # Use the first point as the starting point
-    # (this is not zero because the TPS dataset
-    # is indexed at 1.
     start = 1
     n = len(distance_matrix)
 
-    # The destination points will be every point
-    # except the starting point.  By "point",
-    # we man index.
-    destinations = range(start + 1, n)
+    print("bf n", n)
 
-    # Generate all the permutations of the destination points.
-    # It's important to note that the starting index isn't
-    # included, as it should be at the start of every path.
-    # This will be (n-1)! possible paths.
+    destinations = range(start + 1, n)
     paths = permutations(destinations)
 
-    # Find the path with the least distance.
-    shortest_path = None
-    shortest_distance = sys.maxsize
+    candidates = []
     for path in paths:
-        # Complete the route by add the starting point
-        # to the beginning and end of the path.
         path = (start,) + path + (start,)
+        candidates.append((find_path_distance(path, distance_matrix), path))
 
-        # If the path is shorter than all other
-        # test paths, set it as the shortest path.
-        distance = find_path_distance(path, distance_matrix)
-        if distance < shortest_distance:
-            shortest_path = path
-            shortest_distance = distance
-
-    return shortest_path
+    solution = min(candidates, key=operator.itemgetter(0))
+    print("bfdistance", solution[0])
+    return solution[1]
 
     
 def held_karp(distance_matrix):
@@ -138,6 +121,11 @@ def held_karp(distance_matrix):
     subset_sizes = range(1, n-1)
     destinations = range(2, n+1)
 
+    print(list(subset_sizes))
+    print(list(destinations))
+
+    # return destinations
+
     # Add the base cases to the cache
     for d in destinations:
         cache[(d, ())] = (distance_matrix[1][d], (1, ()))
@@ -149,35 +137,49 @@ def held_karp(distance_matrix):
                 if d in subset:
                     continue
                 candidates = []
-                for index, test_subset in enumerate(
-                        combinations(subset, size-1)):
-                    k = subset[size - index - 1]
-                    distance = cache[(d, test_subset)][0] + dist(d, k)
+                for i, test_subset in enumerate(combinations(subset, size-1)):
+                    k = subset[size - i - 1]
+                    distance = cache[(k, test_subset)][0] + dist(d, k)
+                    print("set=", subset, "k=", k, "d=", d)
+                    print("distance=", cache[(k, test_subset)][0], "+", dist(d, k))
+                    print()
                     candidates.append((distance, (k, test_subset)))
                     
                 cache[(d, subset)] = min(
-                        candidates,
-                        key=operator.itemgetter(0))
+                        candidates, key=operator.itemgetter(0))
                 
     # Add the last solution to the cache
     candidates = []
-    for index, subset in enumerate(combinations(destinations, n - 2)):
-        k = destinations[n-2-index]
-        candidates.append((cache[(k, subset)][0] + dist(1, k), (k, subset)))
-    last = cache[(1, tuple(destinations))] = min(
-            candidates,
-            key=operator.itemgetter(0))
+    for i, subset in enumerate(combinations(destinations, n - 2)):
+        d = destinations[n - 2 - i]
+        candidates.append((cache[(d, subset)][0] + dist(1, d), (d, subset)))
+
+    traveler = (1, tuple(destinations))
+    cache[traveler] = min(
+            candidates, key=operator.itemgetter(0))
  
     print_cache()
 
+    path = []
+    while traveler is not None:
+        path.append(traveler[0])
+        if traveler in cache:
+            traveler = cache[traveler][1]
+        else:
+            traveler = None
+
+
     # Backtrack through the cache and create an
     # the optimal path
-    path = [1]
-    while last[1] in cache:
-        path.append(cache[last[1]][1][0])
-        last = cache[last[1]]
-
-    return path
+    #path = [1]
+    #while traveler in cache:
+    #    print("appending", cache[traveler[1]][1], "[0]")
+    #    path.append(cache[traveler[1]][1][0])
+    #    traveler = cache[traveler[1]]
+    print()
+    print(path)
+    print()
+    return tuple(reversed(path))
 
 
 def create_graph(edge_matrix, points):
@@ -196,7 +198,7 @@ def create_graph(edge_matrix, points):
 
 
 def test_path(path, distance_matrix, points):
-    edge_matrix = create_edge_matrix(path, distance_matrix)
+    edge_matrix = create_edge_matrix(path)
     graph = create_graph(edge_matrix, points)
 
     nx.draw(graph,
@@ -207,30 +209,33 @@ def test_path(path, distance_matrix, points):
 
 
 def main():
-    # Read the TSP data
-    P = read_tsp('test.tsp')
-    # Create the distance matrix
+    global size
+    size = 10
+
+    P = read_tsp('test.tsp', size)
     D = create_distance_matrix(P)    
 
-    # Reduce the matrix to 8x8 as
-    # the BF is too slow for any
-    # additional verticies 
-    global size
-    size = 7
-    D = D[:size]
-    P = P[:size]
+    D = D[:size+1]
     for i in range(len(D)):
-        D[i] = D[i][:size]
+        D[i] = D[i][:size+1]
 
     bf_path = brute_force(D)
-    test_path(bf_path, D, P) 
-    # path2 = held_karp(matrix)
+    print(bf_path)
+    
+    hc_path = held_karp(D)
 
-    # print(path1)
-    # print(path2)
+    print("harpklarp", hc_path)
+    print("brute force", bf_path)
 
     return
-    
+
+    if 1:
+        hc_path = held_karp(D)
+        test_path(hc_path, D, P) 
+    else:
+        bf_path = brute_force(D)
+        test_path(bf_path, D, P) 
+
     
 if __name__ == "__main__":
     main()
