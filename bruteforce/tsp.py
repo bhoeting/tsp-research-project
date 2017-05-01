@@ -1,12 +1,17 @@
 import math
 import operator
-from itertools import combinations, permutations, chain 
 import networkx as nx
-import matplotlib.pyplot as plt
 from pandas import DataFrame
+import matplotlib.pyplot as plt
+from itertools import combinations, permutations
 
 
-def read_tsp(filename, size):
+def read_tsp_instance(filename, size):
+    """
+    Read the data from a standard TSP instance.
+    The result is a dictionary that maps an index 
+    to a tuple representing the node position.
+    """
     points = {}
     reading_points = False
 
@@ -25,12 +30,6 @@ def read_tsp(filename, size):
     return points
 
 
-def powerset(iterable):
-    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
-    s = list(iterable)
-    return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
-
-
 def create_distance_matrix(points):
     """
     Create a matrix from a dict of points
@@ -46,22 +45,32 @@ def create_distance_matrix(points):
     for i, point1 in points.items():
         for j, point2 in points.items():
             if i < j:
-                matrix[i][j] = find_distance(points[i], points[j])
+                matrix[i][j] = calc_distance(points[i], points[j])
 
     return matrix
 
 
 def print_matrix(matrix):
+    """
+    Print a matrix using the DataFrame
+    class from the pandas library.
+    """
     print(DataFrame(matrix))
 
 
-def find_distance(point1, point2):
+def calc_distance(point1, point2):
+    """
+    Calculate the distance between two points.
+    """
     return math.sqrt(
             ((point2[1] - point1[1]) ** 2) +
             ((point2[0] - point1[0]) ** 2))
 
 
-def find_path_distance(path, matrix):
+def calc_path_distance(path, matrix):
+    """
+    Calculate the total distance of a path.
+    """
     distance = 0
     for i in range(1, len(path)):
         point1 = min(path[i-1], path[i])
@@ -72,6 +81,12 @@ def find_path_distance(path, matrix):
 
 
 def create_edge_matrix(path):
+    """
+    Create edge matrix E from a path
+    such that E[i, j] is 1 if an edge
+    exists between nodes i and j, or
+    0 otherwise.
+    """
     path_length = len(path)
     edge_matrix = [[0]*path_length for _ in range(path_length)]
     for i in range(1, path_length):
@@ -83,10 +98,13 @@ def create_edge_matrix(path):
 
 
 def brute_force(distance_matrix):
+    """
+    Solve the TSP using the brute force method. That
+    is, generate each possible path and choose
+    the one with the lowest total distance.
+    """
     start = 1
     n = len(distance_matrix)
-
-    print("bf n", n)
 
     destinations = range(start + 1, n)
     paths = permutations(destinations)
@@ -94,43 +112,40 @@ def brute_force(distance_matrix):
     candidates = []
     for path in paths:
         path = (start,) + path + (start,)
-        candidates.append((find_path_distance(path, distance_matrix), path))
+        candidates.append((calc_path_distance(path, distance_matrix), path))
 
     solution = min(candidates, key=operator.itemgetter(0))
-    print("bfdistance", solution[0])
     return solution[1]
 
     
 def held_karp(distance_matrix):
-    cache = {}
-    n = len(distance_matrix) - 1
+    """
+    Solve the TSP using the held_karp algorihtm.  
+    """
 
-    # Distance helper function
+    # Distance helper function. This is necessary
+    # since we have a diagonal distance matrix.
     def dist(i, j):
         return distance_matrix[min(i, j)][max(i, j)]
 
-    print_matrix(distance_matrix)
-
-    def print_cache():
-        print()
-        for key, value in reversed(list(cache.items())):
-            print(key, "=>", value)
-        print()
+    # The cache will map a path S, parent node P, and total 
+    # distance d to the optimal subpath of S - {P}, its parent
+    # node, and its distance. The last added item will contain
+    # the optimal distance, and we can backtrace through the
+    # cache to obtain the optimal path.
+    cache = {}
+    n = len(distance_matrix) - 1
 
     # Initialize ranges
     subset_sizes = range(1, n-1)
     destinations = range(2, n+1)
 
-    print(list(subset_sizes))
-    print(list(destinations))
-
-    # return destinations
-
-    # Add the base cases to the cache
+    # Add the base cases to the cache (i.e. the distance of
+    # each destination node to the starting node).
     for d in destinations:
         cache[(d, ())] = (distance_matrix[1][d], (1, ()))
 
-    # Build the cache for each set with length > 0
+    # Build the cache for each set where the length > 0
     for size in subset_sizes:
         for d in destinations:
             for subset in combinations(destinations, size):
@@ -140,26 +155,24 @@ def held_karp(distance_matrix):
                 for i, test_subset in enumerate(combinations(subset, size-1)):
                     k = subset[size - i - 1]
                     distance = cache[(k, test_subset)][0] + dist(d, k)
-                    print("set=", subset, "k=", k, "d=", d)
-                    print("distance=", cache[(k, test_subset)][0], "+", dist(d, k))
-                    print()
                     candidates.append((distance, (k, test_subset)))
                     
                 cache[(d, subset)] = min(
                         candidates, key=operator.itemgetter(0))
                 
-    # Add the last solution to the cache
+    # Compute the final optimal subpath.
     candidates = []
     for i, subset in enumerate(combinations(destinations, n - 2)):
         d = destinations[n - 2 - i]
         candidates.append((cache[(d, subset)][0] + dist(1, d), (d, subset)))
 
+    # Cache the final optimal subpath. Keep track of the key
+    # in traveler.
     traveler = (1, tuple(destinations))
-    cache[traveler] = min(
-            candidates, key=operator.itemgetter(0))
- 
-    print_cache()
+    cache[traveler] = min(candidates, key=operator.itemgetter(0))
 
+    # Backtrack through the cache, starting with traveler,
+    # to build the optimal subpath.
     path = []
     while traveler is not None:
         path.append(traveler[0])
@@ -168,27 +181,17 @@ def held_karp(distance_matrix):
         else:
             traveler = None
 
-
-    # Backtrack through the cache and create an
-    # the optimal path
-    #path = [1]
-    #while traveler in cache:
-    #    print("appending", cache[traveler[1]][1], "[0]")
-    #    path.append(cache[traveler[1]][1][0])
-    #    traveler = cache[traveler[1]]
-    print()
-    print(path)
-    print()
     return tuple(reversed(path))
 
 
 def create_graph(edge_matrix, points):
-    # Create a graph and add each point.
+    """
+    Use the points and edge matrix to build a graph.
+    """
     graph = nx.Graph()
     for point, position in points.items():
         graph.add_node(point, pos=points[point])
 
-    # Add the edges
     for i in range(1, len(edge_matrix)):
         for j in range(1, len(edge_matrix)):
             if edge_matrix[i][j] == 1:
@@ -198,36 +201,32 @@ def create_graph(edge_matrix, points):
 
 
 def test_path(path, distance_matrix, points):
+    """
+    Create an edge matrix from a path, then
+    create a graph from the edge matrix and
+    the points, then draw the graph.
+    """
     edge_matrix = create_edge_matrix(path)
     graph = create_graph(edge_matrix, points)
 
     nx.draw(graph,
             nx.get_node_attributes(graph, 'pos'),
-            with_labels=True,
-            node_size=120)
+            with_labels=False,
+            node_size=60)
+
     plt.show()
 
 
 def main():
     global size
-    size = 10
+    size = 14
 
-    P = read_tsp('test.tsp', size)
+    P = read_tsp_instance('test.tsp', size)
     D = create_distance_matrix(P)    
 
     D = D[:size+1]
     for i in range(len(D)):
         D[i] = D[i][:size+1]
-
-    bf_path = brute_force(D)
-    print(bf_path)
-    
-    hc_path = held_karp(D)
-
-    print("harpklarp", hc_path)
-    print("brute force", bf_path)
-
-    return
 
     if 1:
         hc_path = held_karp(D)
