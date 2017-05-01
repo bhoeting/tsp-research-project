@@ -1,8 +1,15 @@
 
-%\documentclass[margin, 11pt]{article}
-\documentclass{article}
-\usepackage[left=3cm,right=3cm,top=2cm,bottom=2cm]{geometry}
+% Preamble
+% ---
+\documentclass[11pt,fleqn]{article}
 
+% Packages
+% ---
+\usepackage[
+  left=3cm,
+  right=3cm,
+  top=2cm,
+  bottom=2cm]{geometry}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{mathtools}
@@ -15,9 +22,14 @@
 \usepackage{bigstrut}
 \usepackage{mathptmx}
 \usepackage{minted}
+
+
+% Use borland colorscheme in minted.
 \usemintedstyle{borland}
 
 
+% Document
+% ---
 \begin{document}
 
 \title{Exploring the Traveling Salesman Problem}
@@ -26,51 +38,61 @@
 \maketitle
 
 \section*{Introduction}
-This paper will explore the Traveling Salesman Problem (TSP).
-We will first obtain an understanding of the problem, that
+This paper will explore the Traveling Salesman Problem (TSP),
+a classic NP---hard problem in the field of computer science.
+We will first obtain an understanding of the problem. That
 is, we will explain the problem, examine its input and output,
-and identify what makes solving this problem particularly
-challenging.  Next, we will present a naive brute force solution
-to the problem and analyze it's efficiency and correctness.  We
-will improve upon that solution by comparing and contrasting
-more efficient approaches to solving the problem.  We will choose
-an efficient solution to present, explain, and compare runtimes
-against naive solution.  We will prove that our efficient solution
-can solve a subclass of instances of the Traveling Salesman Problem.
-Finally, Python code for the naive and efficient solutions will be
-presented and demonstrated.
+and show why solving this problem particularly challenging.
+We will present and explain a naive brute force solution to the
+problem and analyze it's efficiency.  We will present a better
+method for solving the TSP, the Held---Karp algorithm, and explain
+it in detail mathematically and with psuedocode.  There is a 
+smorgasbord of algorihtms that imporve over the brute force method,
+but they all have their drawbacks and none of them run in polynommial
+time complexity.  We will examine a few of these methods in lesser
+detail than Held---Karp and look at situtations in which one algorithm
+is favorable over another.
 
-\section*{Understanding the Problem}
+\section{Understanding the Problem}
+\subsection{Overview}
 The traveling salesman problem can be described as follows:
 Given a set of cities, where there is a distance between
-each pair of cities, find a tour one could take that
-begins at a starting city, visits each destination city
-exactly once, and returns to the starting city with the
-minimum possible total distance traveled.  We will refer
-to the tour with the minimum possible distance traveled
-as the \textit{optimal tour}.
-\par
+each pair of cities, find a tour (route) that begins at a
+starting city, visits each destination city exactly once,
+and returns to the starting city with the minimum possible
+total distance traveled.  We will refer to the tour with the
+minimum possible distance traveled as the \textit{optimal tour}.
 
+\subsection{Problem Input}
 The problem input is a matrix that defines the distance
 between each pair of cities.  We will denote this as
 the distance matrix $D = (d_{ij})$, where $d_{ij}$ is
 the distance between city $i$ and city $j$.  It is important
-to note that the distance from city $i$ to city $j$ is equal
-to the distance from city $j$ to city $i$. This means that our
-TSP variation is \textit{undirected} so we may use a diagnol
+to note that the cost (distance) from city $i$ to city $j$ is equal
+to the cost from city $j$ to city $i$. This means that our
+TSP variation is \textit{undirected}, so we may use a diagnol
 matrix to represent the distances.  That is, for every $d_{ij}$
 where $i<j$, $d_{ij}$ is the distance between cities $i$ and $j$,
-and every $d_{ij}$ where $i\geq j$, $d_{ij} = 0$.  In a \textit{directed}
-variation of the TSP --- such as one that optimizes for minimum total
-airfair to travel the tour by plane, where ticket prices from city
-$i$ to city $j$ is not necessarily equal to the ticket price from
-city $j$ to city $i$ --- we could not store the costs in a diagnol
-matrix.  See below for a valid input example of our TSP variation.
-Notice, for example, that the distance between city $1$ and city $4$
-is $d_{1,4}=29$.  Observe that when $i<j$ $d_{ij}=0$, implying
-we will ignore distance between $i$ and $j$, either because $i=j$
-(meaning we don't travel from city $i$ to city $i$) or because $j>i$,
-in which case the distance can be found elsewhere in the matrix.
+and every $d_{ij}$ where $i\geq j$, is ignored.
+\par
+
+In a \textit{directed} variation of the TSP --- such as one that
+optimizes for minimum total airfair to travel a tour by plane,
+where ticket prices from city $i$ to city $j$ is not necessarily
+equal to the ticket price from city $j$ to city $i$ --- we would
+store the cost in every value of $d_{ij}$ where $i\neq $j, rather
+than storing the costs in a diagnol matrix.  This distinction,
+while helpful to be aware of, minimally affects how the problem is
+solved in the methods we will explore.
+
+\par
+
+See below for a valid 
+input example of our TSP variation.  Notice, for example, that the
+distance between city $1$ and city $4$ is $d_{1,4}=29$.  If we ran
+into a case while implementing the algorithm where we are finding
+the distance between $i$ and $j$ but $j>i$, we simply get the distance
+from $d_{ji}$ instead of $d_{ij}$.
 \par
 
 \begin{align*}
@@ -87,6 +109,7 @@ in which case the distance can be found elsewhere in the matrix.
   \end{blockarray}
 \end{align*}
 
+\subsection{Problem Output}
 Similarly, the output for the TSP is also a matrix with the dimensions
 $N\times N$, where $N$ is the number of cities.  We will define this as
 the edge matrix $E = (e_{ij})$, where $e_{ij}=1$ if the optimal tour involves
@@ -118,10 +141,10 @@ the value in $e_{ij}$ is not used, resulting in another diagonal matrix.
   \end{blockarray}
 \end{align*}
 
-Now that the Traveling Salesman Problem is defined, we shall proceed by
-exploring different methods for arriving at a solution.
+Now that the Traveling Salesman Problem is defined, we can proceed by
+exploring different methods for computing the optimal solution.
 
-\section*{A Naive Brute Force Algorithm}
+\section{A Naive Brute Force Algorithm}
 The brute force method for solving the Traveling Salesman Problem has exactly
 two redeeming qualities: (1) it is quite simple, making implementation
 trivial, and (2) it will produce the correct tour in every TSP instance.
@@ -158,16 +181,19 @@ $1$, so we omit it when generating the permutations since it should
 be the first and last element of each possible tour.  On line $5$,
 we insert the starting point $1$ in the front and back of the tour
 before calculating the tour distance.  Then we simply update $\id{min-tour}$
-and $\id{min-dist}$ as we encounter a more optimal tour.  To understand
-how the runtime of this algorithm grows as the problem size increases
-(i.e.\ as the number of cities increases), refer to the table below:
+and $\id{min-dist}$ as we encounter a more optimal tour.
+\par
+
+
+Looking at the table below, we can see how the number of potential optimal
+paths increases as the number of cities increases.
 \par
 \vspace{0.25cm}
 
 \bgroup
-\def\arraystretch{1.00}
+\def\arraystretch{1.5}
 \begin{tabular}{c|r}
-  \# of cities $n$ & \# of possible tours $(n-1){!}$ \\
+  Cities $n$ & Possible Tours $(n-1){!}$ \\
   \hline
   \begin{tabular}{c}
     4 \\
@@ -195,23 +221,33 @@ how the runtime of this algorithm grows as the problem size increases
 
 \end{tabular}
 \egroup
+\vspace{0.25cm}
 
-Since the runtime of this algorithm is bounded
-by the number of possible tours, we can say it has
-an upper bound of $O(n!)$.  This is unsurprising
-for a brute force algorithm.  We will now explore
-a more efficient solution to the Traveling Salesman
-Problem so we may solve instances with more than 12
-cities in a reasonable runtime.
+The runtime of this algorithm is bounded by the amount
+of time it takes to generate each possible tour.
+Therefore, we may informally say that the upper runtime
+bound for the runtime is $O(n!)$, where $n$ is the
+number of cities.
 
-\section*{A More Thoughtful Solution}
+\par
+
+
+\section{A More Thoughtful Solution}
+
+% Appendicies
+% ---
 \newpage
+\appendix
+\section{Appendices}
+\addcontentsline{toc}{section}{Appendices}
+\renewcommand{\thesubsection}{\Alph{subsection}}
 
-\section*{Appendix A}
+\subsection{Collaboration}
+  I collaborated with Grant Eaton and Luke Artnak.
 
 \newpage
+\subsection{Code Demonstration}
+  \inputminted[frame=lines,linenos=true]{python}{../src/brute_force.py}
 
-\section*{Appendix B}
-\inputminted[frame=lines,linenos=true]{python}{../src/brute_force.py}
 
 \end{document}
