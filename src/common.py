@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 def read_tsp_instance(filename, size):
     """
     Read the data from a standard TSP instance.
-    The result is a dictionary that maps an index 
+    The result is a dictionary that maps an index
     to a tuple representing the node position.
     """
     points = {}
@@ -33,11 +33,10 @@ def create_distance_matrix(points):
     Create a matrix from a dict of points
     where matrix[i, j] is the distance
     between point i and point j, where
-    i and j also corrospond to the keys 
+    i and j also corrospond to the keys
     in points
     """
     n = len(points) + 1
-
     matrix = [[0] * n for _ in range(n)]
 
     for i, point1 in points.items():
@@ -107,7 +106,7 @@ def create_graph(edge_matrix, points):
         for j in range(1, len(edge_matrix)):
             if edge_matrix[i][j] == 1:
                 graph.add_edge(i, j)
-            
+
     return graph
 
 
@@ -126,5 +125,3 @@ def test_path(path, distance_matrix, points):
             node_size=60)
 
     plt.show()
-
-

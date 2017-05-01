@@ -9,17 +9,15 @@ def brute_force(distance_matrix):
     is, generate each possible path and choose
     the one with the lowest total distance.
     """
-    start = 1
     n = len(distance_matrix)
-
-    destinations = range(start + 1, n)
+    destinations = range(2, n)
     paths = permutations(destinations)
 
     candidates = []
     for path in paths:
-        path = (start,) + path + (start,)
-        candidates.append((calc_path_distance(path, distance_matrix), path))
+        path = (1,) + path + (1,)
+        candidates.append((
+            calc_path_distance(path, distance_matrix),
+            path))
 
-    solution = min(candidates, key=operator.itemgetter(0))
-    return solution[1]
-
+    return min(candidates, key=operator.itemgetter(0))[1]

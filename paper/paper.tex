@@ -14,6 +14,8 @@
 \usepackage{mathptmx}
 \usepackage{bigstrut}
 \usepackage{mathptmx}
+\usepackage{minted}
+\usemintedstyle{borland}
 
 
 \begin{document}
@@ -21,7 +23,7 @@
 \title{Exploring the Traveling Salesman Problem}
 \author{Brennan Hoeting}
 \date{}
-\maketitle 
+\maketitle
 
 \section*{Introduction}
 This paper will explore the Traveling Salesman Problem (TSP).
@@ -41,7 +43,7 @@ presented and demonstrated.
 \section*{Understanding the Problem}
 The traveling salesman problem can be described as follows:
 Given a set of cities, where there is a distance between
-each pair of cities, find a tour one could take that 
+each pair of cities, find a tour one could take that
 begins at a starting city, visits each destination city
 exactly once, and returns to the starting city with the
 minimum possible total distance traveled.  We will refer
@@ -54,14 +56,14 @@ between each pair of cities.  We will denote this as
 the distance matrix $D = (d_{ij})$, where $d_{ij}$ is
 the distance between city $i$ and city $j$.  It is important
 to note that the distance from city $i$ to city $j$ is equal
-to the distance from city $j$ to city $i$. This means that our 
-TSP variation is \textit{undirected} so we may use a diagnol 
-matrix to represent the distances.  That is, for every $d_{ij}$ 
+to the distance from city $j$ to city $i$. This means that our
+TSP variation is \textit{undirected} so we may use a diagnol
+matrix to represent the distances.  That is, for every $d_{ij}$
 where $i<j$, $d_{ij}$ is the distance between cities $i$ and $j$,
 and every $d_{ij}$ where $i\geq j$, $d_{ij} = 0$.  In a \textit{directed}
 variation of the TSP --- such as one that optimizes for minimum total
 airfair to travel the tour by plane, where ticket prices from city
-$i$ to city $j$ is not necessarily equal to the ticket price from 
+$i$ to city $j$ is not necessarily equal to the ticket price from
 city $j$ to city $i$ --- we could not store the costs in a diagnol
 matrix.  See below for a valid input example of our TSP variation.
 Notice, for example, that the distance between city $1$ and city $4$
@@ -107,7 +109,7 @@ the value in $e_{ij}$ is not used, resulting in another diagonal matrix.
   \begin{blockarray}{cccccc}
     & j_1 & j_2 & j_3 & j_4 & j_5 \\
   \begin{block}{c(ccccc)}
-    i_1 & \cdot & 1 & 0 & 0 & 1 \\ 
+    i_1 & \cdot & 1 & 0 & 0 & 1 \\
     i_2 & \cdot & \cdot & 1 & 0 & 0 \\
     i_3 & \cdot & \cdot & \cdot & 1 & 0 \\
     i_4 & \cdot & \cdot & \cdot & \cdot & 1 \\
@@ -120,7 +122,7 @@ Now that the Traveling Salesman Problem is defined, we shall proceed by
 exploring different methods for arriving at a solution.
 
 \section*{A Naive Brute Force Algorithm}
-The brute force method for solving the Traveling Salesman Problem has exactly 
+The brute force method for solving the Traveling Salesman Problem has exactly
 two redeeming qualities: (1) it is quite simple, making implementation
 trivial, and (2) it will produce the correct tour in every TSP instance.
 Unfortunately, for instances that contain more than roughly 10 cities, the
@@ -136,14 +138,14 @@ analyze the psuedocode below:
 \li $\id{min-dist} \gets \infty$
 \li $\id{min-tour} \gets \const{nil}$
 \li \For each tour $t \in T$
-\li   \Do 
-	$\id{t} \gets [1] + T + [1]$
+\li   \Do
+        $\id{t} \gets [1] + T + [1]$
 \li       $\id{dist} \gets \proc{TOUR-DISTANCE}(D, t)$
 \li	  \If $dist < \id{min-dist}$
 \li	    \Then
               $\id{min-dist} \gets dist$
 \li	      $\id{min-tour} \gets tour$
-	    \End
+            \End
        \End
 
 \li   \Return $\proc{MAKE-EDGE-MATRIX}(t)$
@@ -153,7 +155,7 @@ analyze the psuedocode below:
 On line $1$, we generate a list containing each permutation of
 $[2 \twodots \attrib{D}{length}]$.  Our starting point is at city
 $1$, so we omit it when generating the permutations since it should
-be the first and last element of each possible tour.  On line $5$, 
+be the first and last element of each possible tour.  On line $5$,
 we insert the starting point $1$ in the front and back of the tour
 before calculating the tour distance.  Then we simply update $\id{min-tour}$
 and $\id{min-dist}$ as we encounter a more optimal tour.  To understand
@@ -203,6 +205,13 @@ Problem so we may solve instances with more than 12
 cities in a reasonable runtime.
 
 \section*{A More Thoughtful Solution}
- 
-  
+\newpage
+
+\section*{Appendix A}
+
+\newpage
+
+\section*{Appendix B}
+\inputminted[frame=lines,linenos=true]{python}{../src/brute_force.py}
+
 \end{document}
