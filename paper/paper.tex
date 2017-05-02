@@ -24,7 +24,7 @@
 \usepackage{minted}
 \usepackage[pdftex,pdfpagelabels,bookmarks,hyperindex,hyperfigures]{hyperref}
 \usepackage{apacite}
-%\usepackage{natbib}
+\usepackage{tikz}
 
 
 % Use borland colorscheme in minted.
@@ -324,12 +324,73 @@ Christofide's algorithm is an $O(n^3)$ approximation algorithm that guarentees
 the cost of its solution will be strictly within $3/2$ of the optimal solution
 cost.  The algorithm only works on a symmetric distance matrix that satisfies
 the triangle inequality \cite{nicos}.  That is, a distance matrix $D=d_{ij}$
-satisfies the triangle inequality if the shortest path to reach every $j$ from
+may be used if the shortest path to reach every $j$ from
 $i$ involves traveling directly to $j$ from $i$, rather than through a path that
 includes more than two verticies.
 \par
 
-The algorithm works as follows: Given a distance matrix $D=d_{ij}$, 
+The algorithm works as follows: Given a distance matrix $D=d_{ij}$ and size $n$,
+let $G=(V,E)$ where $v_i=i$ for all $i\in [1,\dots,n]$ and $e_{ij}=d_{ij}$.  The
+optimal tour starting at $v_1$ is obtained using the following steps:
+\begin{enumerate}
+  \item Generate a minimum spanning tree, $MST$, rooted at $v_1$ using Prim's algorithm.
+  \item Perform a preorder traversal on $MST$ and append the verticies in the order they 
+    are visited to list a $T$.
+  \item For each verticy in $T$, append it to $T'$ only when it is first visited.  This 
+    removes duplicates from $T$ resulting in the optimal tour.
+\end{enumerate}
+
+The last step holds since $G$ satisfies the triangle inequality.
+
+\subsection{Nearest Neighbor}
+The Nearest Neighbor algorithm is a greedy approximation algorithm
+for solving the TSP\@.  It starts at an arbitrary city, then visits
+the closest city until each city has been visited once.  After each
+visit, the city is added to the optimal tour $T$.  Once each node
+has been visited, the starting city is appended to $T$ and $T$ is
+returned. \cite{bellmore}
+\par
+
+The steps for this algorithm are as follows:
+\begin{enumerate}
+  \item Pick a starting city $s$, let it be the current city $x$.
+  \item Add $x$ to the optimal tour $T$ and mark $x$ as visited.
+  \item Determine the closest unvisited city $y$ from $x$.  If no
+    unvisited cities exist, goto step 5.
+  \item assign $x$ to $y$, repeat step 2.
+  \item Add $s$ to $T$, return $T$.
+\end{enumerate}
+
+\subsection{Comparing the Three}
+We have examined one exact algorithm -- Held-Karp -- and two approximation
+algorithms --Christofides and Nearest Neighbor.  The approximation algorithms
+have the advantage of being significantly faster than the Held-Karp algorithm,
+but they aren't applicable in every case, and they don't always return the optimal
+tour for cases in which they are applicable.  The Held-Karp algorithm, on the other
+hand, will return the optimal tour in every TSP instance, provided the number of
+cities is small enough to allow the algorithm to finish execution in a reasonable
+time.
+\par
+
+Christofide's algorithm and the Nearest Neighbor algorithm both perform at an
+acceptable level (that is, they return the optimal tour enough of the time) for
+Euclidean TSP instances.  If a TSP instance is Euclidean, then it satisfies the
+triangle inequality.  This property is necessary for Christofide's algorithm to
+return the correct tour \cite{nicos} and it greatly increases the probability
+that the Nearest Neighbor algorithm will as well \cite{gutin}.
+\par
+
+For asymmetric and general symmetric TSP instances, Christofide's algorithm will
+never return the optimal tour.  The Nearest Neighbor algorithm, on the other hand,
+can find an optimal tour, but it's highly unlikely.  Additionally, for every $n\gte 2$
+there exists at least one asymmetric or general symmetric TSP instance for which the
+Nearest Neighbor algorithm returns the \textit{worst} tour. \cite{gutin}.  We are
+optimizing for correctness over speed and problem size in this paper and will continue
+to explore the Held--Karp algorithm.
+
+\subsection{Held-Karp Pseudocode}
+
+
 
 
 % Appendicies
