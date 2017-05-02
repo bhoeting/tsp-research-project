@@ -1,2 +1,3 @@
 paper/*
 !paper/paper.tex
+!paper/biblio.bib

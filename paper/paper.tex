@@ -23,6 +23,8 @@
 \usepackage{mathptmx}
 \usepackage{minted}
 \usepackage[pdftex,pdfpagelabels,bookmarks,hyperindex,hyperfigures]{hyperref}
+\usepackage{apacite}
+%\usepackage{natbib}
 
 
 % Use borland colorscheme in minted.
@@ -32,6 +34,10 @@
 % Document
 % ---
 \begin{document}
+%\setlength{\abovedisplayskip}{0pt}
+%\setlength{\belowdisplayskip}{0pt}
+%\setlength{\abovedisplayshortskip}{0pt}
+%\setlength{\belowdisplayshortskip}{0pt}
 
 \title{Exploring the Traveling Salesman Problem}
 \author{Brennan Hoeting}
@@ -256,22 +262,93 @@ number of cities.
 \par
 
 
-\section{A More Thoughtful Solution}
+\section{A Better Algorithm}
+\subsection{Overview}
+While the brute force algorithm is simple and correct, it
+is far too slow for larger inputs.  Fortunately, there are multiple
+alternative TSP algorithms with a non-polynomial runtime
+that is better than $O(n!)$.  We will explore in detail the
+\textit{Held--Karp} algorithm, an $O(2^n)$ solution that uses
+dynamic programming \cite{heldkarp}.  Then we will look at it
+to the MST approximation algorithm and discuss the advantages
+of each approach. 
+
+\subsection{Held--Karp}
+The Held--Karp algorithm is an $O(2^n)$ approach to solving the TSP\@.
+It is not fast enough to solve TSP instances with a large number of
+cities, but the solution for the instances it can solve is guarenteed
+to be correct.  The algorithm works as follows:
+\par
+
+Suppose $D = (d_{ij})$ is distance
+matrix where $d_{ij} = d_{ji}$, $n$ is the number of rows in $D$,
+$S$ is a subset of $\{1, 2,\dots,n\}$, and $x\in S$.  We define $C(S, x)$
+to be the distance of the optimal tour that starts at $x$, visits each
+destination exactly once, and ends at $1$ \cite{heldkarp}.  The recurrence
+for $C(S,x)$ is:
+
+\begin{align*}
+  C(S, x)=\begin{cases}
+    \min\{k\in S-\{x\} : d_{kx} + C(S-\{x\}, k) \}  & \text{if } n>1 \\
+    d_{1x}                                          & \text{if } n=1
+  \end{cases}
+\end{align*}
+
+We obtain the optimal cost from a distance matrix $D$ of size $n$ by calling
+$C(\{1,\dots,n\}, 1)$.  We can apply dynamic programming principles to this
+problem by storing the cost for each call in a lookup table $H$.  In each
+recurrence where $n>1$, if the tuple $(S, x)$ exists in $H$, we can return
+$H[(S, x)]$.  Otherwise,  we will compute the cost and store it in $H$.
+\par
+
+This alone does not solve the original problem.  We still need to return 
+the optimal tour, not just its distance.  We can find the optimal tour
+by backtracing through $H$.  We define the optimal tour as $P$ and $B(v)$
+as a recurrence that backtraces through $H$:
+
+\begin{align*}
+  B(v)=\begin{cases}
+    B(H[v])     & \text{if } v \text{\ in\ } H \\
+    \const{nil} & \text{otherwise} 
+  \end{cases}
+\end{align*}
+
+We fill in the values of $P$ by calling $B((\{1,\dots,n\}, 1))$.  On each
+recurrence where $v$ is in $H$, we append the second value from the tuple $v$
+to $P$.  When $v$ is not in $H$ and $\const{nil}$ is returned from $B(v)$, we
+append $1$ to $P$, resulting in the optimal tour.
+\par
+
+\subsection{Christofides}
+Christofide's algorithm is an $O(n^3)$ approximation algorithm that guarentees
+the cost of its solution will be strictly within $3/2$ of the optimal solution
+cost.  The algorithm only works on a symmetric distance matrix that satisfies
+the triangle inequality \cite{nicos}.  That is, a distance matrix $D=d_{ij}$
+satisfies the triangle inequality if the shortest path to reach every $j$ from
+$i$ involves traveling directly to $j$ from $i$, rather than through a path that
+includes more than two verticies.
+\par
+
+The algorithm works as follows: Given a distance matrix $D=d_{ij}$, 
+
 
 % Appendicies
 % ---
+%\newpage
+%\appendix
+%\section{Appendices}
+%\addcontentsline{toc}{section}{Appendices}
+%\renewcommand{\thesubsection}{\Alph{subsection}}
+%
+%\subsection{Collaboration}
+%  I collaborated with Grant Eaton and Luke Artnak.
+%
+%\newpage
+%\subsection{Code Demonstration}
+%  \inputminted[frame=lines,linenos=true]{python}{../src/brute_force.py}
+%
 \newpage
-\appendix
-\section{Appendices}
-\addcontentsline{toc}{section}{Appendices}
-\renewcommand{\thesubsection}{\Alph{subsection}}
-
-\subsection{Collaboration}
-  I collaborated with Grant Eaton and Luke Artnak.
-
-\newpage
-\subsection{Code Demonstration}
-  \inputminted[frame=lines,linenos=true]{python}{../src/brute_force.py}
-
+\bibliographystyle{apacite}
+\bibliography{biblio}
 
 \end{document}
