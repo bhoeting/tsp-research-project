@@ -1,3 +1,4 @@
 paper/*
 !paper/paper.tex
 !paper/biblio.bib
+!paper/plot.png

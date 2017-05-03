@@ -21,11 +21,14 @@
 \usepackage{parskip}
 \usepackage{mathptmx}
 \usepackage{bigstrut}
+\usepackage{caption}
 \usepackage{mathptmx}
 \usepackage{minted}
 \usepackage[pdftex,pdfpagelabels,bookmarks,hyperindex,hyperfigures]{hyperref}
 \usepackage{apacite}
 \usepackage{tikz}
+\usepackage{float}
+\usepackage{graphicx}
 
 
 % Use borland colorscheme in minted.
@@ -318,7 +321,7 @@ time approximation algorithms.  We will and discuss the advantages
 and drawbacks of each approach. 
 
 \subsection{Held--Karp}
-The Held--Karp algorithm is an $O(2^n)$ approach to solving the TSP\@.
+The Held--Karp algorithm is an $O(n^2 2^n)$ approach to solving the TSP\@.
 It is not fast enough to solve TSP instances with a large number of
 cities, but the solution for the instances it can solve is guarenteed
 to be correct.  The algorithm works as follows:
@@ -386,7 +389,7 @@ optimal tour starting at $v_1$ is obtained using the following steps:
     removes duplicates from $T$ resulting in the optimal tour.
 \end{enumerate}
 
-The last step holds since $G$ satisfies the triangle inequality.
+The last step holds since $G$ satisfies the triangle inequality. \cite{nicos}
 
 \subsection{Nearest Neighbor}
 The Nearest Neighbor algorithm is a greedy approximation algorithm
@@ -407,6 +410,9 @@ The steps for this algorithm are as follows:
   \item Add $s$ to $T$, return $T$.
 \end{enumerate}
 
+This is an $O(n^2)$ algorithm because on each iteration the
+current city visits every other unvisited city.
+
 \subsection{Comparing the Three}
 We have examined one exact algorithm -- Held-Karp -- and two approximation
 algorithms --Christofides and Nearest Neighbor.  The approximation algorithms
@@ -420,7 +426,7 @@ time.
 
 Christofide's algorithm and the Nearest Neighbor algorithm both perform at an
 acceptable level (that is, they return the optimal tour enough of the time) for
-Euclidean TSP instances.  If a TSP instance is Euclidean, then it satisfies the
+Euclidean TSP instances \cite{gutin}.  If a TSP instance is Euclidean, then it satisfies the
 triangle inequality.  This property is necessary for Christofide's algorithm to
 return the correct tour \cite{nicos} and it greatly increases the probability
 that the Nearest Neighbor algorithm will as well \cite{gutin}.
@@ -428,7 +434,7 @@ that the Nearest Neighbor algorithm will as well \cite{gutin}.
 
 For asymmetric and general symmetric TSP instances, Christofide's algorithm will
 never return the optimal tour.  The Nearest Neighbor algorithm, on the other hand,
-can find an optimal tour, but it's highly unlikely.  Additionally, for every $n\gte 2$
+can find an optimal tour, but it's highly unlikely.  Additionally, for every $n \geq 2$
 there exists at least one asymmetric or general symmetric TSP instance for which the
 Nearest Neighbor algorithm returns the \textit{worst} tour. \cite{gutin}.  We are
 optimizing for correctness over speed and problem size in this paper and will continue
@@ -510,10 +516,13 @@ for a given $(S, x)$, appending each optimal $k$ value to the optimal tour $T$.
 \subsection{Held-Karp Runtime}
 We will show that the Held-Karp algorithm is an improvement over the brute force
 approach by proving the runtime of Held-Karp is $O(n^{2}2^n)$, which is better than
-the runtime of brute force, $O(n!)$.  Observe from the pseudocode that our algorithm
-involves computing every possible subset of $\{1,\dots,n\}$, where $n$ is the number
-of cities.  Knowing this, we can prove the runtime by proving a set with $n$ elements
-has $2^n$ subsets using induction.
+the runtime of brute force, $O(n!)$.
+
+Observe from the pseudocode that our algorithm iterates from $2$ to $n$.  In that
+loop we also iterate from $1$ to $n$.  This is where the $n^2$ portion of our runtime
+comes from.  Also observe that the algorithm involves computing every possible subset
+of $\{1,\dots,n\}$, where $n$ is the number of cities.  Knowing this, we can prove the
+runtime by proving a set with $n$ elements has $2^n$ subsets using induction.
 
 \begin{proof}
   (Induction) For our basis step, consider that an empty set $\varnothing$ has $1$
@@ -528,23 +537,104 @@ has $2^n$ subsets using induction.
   sets, the size of $B\union C$ is $2^k + 2^k = 2^{k+1}$.
 \end{proof}
 
+\section{Experimental Comparison}
+
+\subsection{Overview}
+We will do an experiment on the brute force and Held--Karp algorithms,
+running Python implementations of both algorithms and comparing their
+execution times.
+
+\subsection{Input}
+The input for both algorithms will be a standard TSPLIB sample instance, as shown
+in the table below.  The distance matrix is created using the $x$ and $y$ coordinates
+in the table and is used by both algorithms to generate the optimal tour.
+\par
+
+\begin{table}[H]
+  \centering
+  \caption*{TSPLIB xqf131 input}
+  \begin{tabular}{c|c|c}
+    \toprule
+    City & $x$ & $y$ \\
+    \midrule
+    1& 0& 13 \\
+    2& 0& 26 \\
+    3& 0& 27 \\
+    4& 0& 39 \\
+    5& 2& 0\\
+    6& 5& 13\\
+    7& 5& 19\\
+    8& 5& 25\\
+    9& 5& 31\\
+    10& 5& 37\\
+    11& 5& 43\\ 
+    12& 5& 8\\ 
+    13& 8& 0\\
+    14& 9& 10\\
+    15& 10& 10\\
+    16& 11& 10\\
+    17& 12& 10\\
+    18& 12& 5\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Execution}
+We run both algorithms on the data set above and produce the runtime table
+below.  Note that the brute force times for $n>10$ are estimated as the
+algorithm takes too long to run for those problem sizes.
+\par
+
+\begin{table}[H]
+  \centering
+  \caption*{Runtime comparison}
+  \begin{tabular}{c|c|c|c}
+    \toprule
+    Cities $n$ & Brute Force (s) & Held-Karp (s) & BF/HC \\
+    \midrule
+    4   &       0.00003       &    0.00005    &      0.60748      \\
+    5   &       0.00010       &    0.00011    &      0.89353      \\
+    6   &       0.00062       &    0.00032    &      1.94113      \\
+    7   &       0.00437       &    0.00091    &      4.77795      \\
+    8   &       0.03484       &    0.00226    &      15.37989     \\
+    9   &       0.29779       &    0.00568    &      52.38270     \\ 
+    10  &       2.84006       &    0.01420    &     199.93426     \\
+    11  &       31.24068      &    0.03465    &     901.55505     \\
+    12  &      374.88817      &    0.09049    &    4,143.09304    \\
+    13  &     4,873.54623     &    0.24270    &    20,080.92283   \\
+    14  &     68,229.64716    &    0.60574    &   112,639.24419   \\
+    15  &   1,023,444.70737   &    1.44135    &   710,060.87550   \\
+    16  &   16,375,115.31784  &    3.43850    &  4,762,288.58166  \\
+    17  &  278,376,960.40329  &    8.09218    &  34,400,754.72416 \\
+    18  & 5,010,785,287.25922 &    19.04262   & 263,135,354.10685 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Output}
+The output from running the Held-Karp algorithm for 18 cities is a
+list representing the optimal path:
+$(1, 2, 3, 4, 11, 10, 9, 8, 7, 6, 14, 15, 16, 17, 18, 13, 5, 12, 1)$
+
+Our program can also produce a graph:
+
+\centering
+\includegraphics[scale=0.5]{plot.png}
 
 
-% Appendicies
-% ---
-%\newpage
-%\appendix
-%\section{Appendices}
-%\addcontentsline{toc}{section}{Appendices}
-%\renewcommand{\thesubsection}{\Alph{subsection}}
-%
-%\subsection{Collaboration}
-%  I collaborated with Grant Eaton and Luke Artnak.
-%
-%\newpage
-%\subsection{Code Demonstration}
-%  \inputminted[frame=lines,linenos=true]{python}{../src/brute_force.py}
-%
+\newpage
+\appendix
+\section*{Appendices}
+\addcontentsline{toc}{section}{Appendices}
+\renewcommand{\thesubsection}{\Alph{subsection}}
+
+\subsection{Collaboration}
+  I collaborated with Grant Eaton and Luke Artnak.
+
+\newpage
+\subsection{Code Demonstration}
+  \inputminted[frame=lines,linenos=true]{python}{../src/brute_force.py}
+
 \newpage
 \bibliographystyle{apacite}
 \bibliography{biblio}
