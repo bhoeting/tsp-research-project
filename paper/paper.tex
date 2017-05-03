@@ -12,6 +12,7 @@
   bottom=2cm]{geometry}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{amsthm}
 \usepackage{mathtools}
 \usepackage{enumerate}
 \usepackage{clrscode3e}
@@ -30,74 +31,71 @@
 % Use borland colorscheme in minted.
 \usemintedstyle{borland}
 
+% Replace outlined proof square with a black square.
+\renewcommand\qedsymbol{$\blacksquare$}
 
 % Document
 % ---
 \begin{document}
-%\setlength{\abovedisplayskip}{0pt}
-%\setlength{\belowdisplayskip}{0pt}
-%\setlength{\abovedisplayshortskip}{0pt}
-%\setlength{\belowdisplayshortskip}{0pt}
 
+% Title
+% ---
 \title{Exploring the Traveling Salesman Problem}
 \author{Brennan Hoeting}
 \date{}
 \maketitle
 
+% Introduction
+% ---
 \section*{Introduction}
-This paper will explore the Traveling Salesman Problem (TSP),
-a classic NP---hard problem in the field of computer science.
-We will first obtain an understanding of the problem. That
-is, we will explain the problem, examine its input and output,
-and show why solving this problem particularly challenging.
-We will present and explain a naive brute force solution to the
-problem and analyze it's efficiency.  We will present a better
-method for solving the TSP, the Held---Karp algorithm, and explain
-it in detail mathematically and with pseudocode.  There is a
-smorgasbord of algorithms that improve over the brute force method,
-but they all have their drawbacks and none of them run in a polynomial
-time complexity.  We will examine a few of these methods in lesser
-detail than Held---Karp and look at situations in which one algorithm
-is favorable over another.
+The Traveling Salesman Problem (TSP) is a classic NP---hard problem
+in the field of computer science.  Like every other NP--hard problem,
+it can only be solved in exponential runtime, or approximated in polynomail
+runtime.  In this paper, we will obtain an understanding of the TSP problem
+by explaining what it is, examining its input and output, and looking at
+different algorithms that can obtain or approximate a solution.  We will
+present and explain a naive brute force solution to the problem and analyze
+its efficiency.  Then we will look at alternative TSP algorithms and discuess
+the use cases and advantages of each approach.  We will choose one of the
+algorithms and present its pseudocode, as well as detailed mathematical
+notation to gain a better understanding of how it computes the solution.
 
 \section{Understanding the Problem}
 \subsection{Overview}
 The traveling salesman problem can be described as follows:
 Given a set of cities, where there is a distance between
 each pair of cities, find a tour (route) that begins at a
-starting city, visits each \textit{destination city} exactly once,
-and returns to the starting city with the minimum possible
-total distance traveled.  We will refer to the tour with the
+\textit{starting city}, visits each \textit{destination city}
+exactly once, and returns to the starting city covering the minimum
+possible total distance.  We will refer to the tour with the
 minimum possible distance traveled as the \textit{optimal tour}.
 
 \subsection{Problem Input}
 The problem input is a matrix that defines the distance
-between each pair of cities.  We will denote this as
-the distance matrix $D = (d_{ij})$, where $d_{ij}$ is
-the distance between city $i$ and city $j$.  It is important
-to note that the cost (distance) from city $i$ to city $j$ is equal
-to the cost from city $j$ to city $i$. This means that our
-TSP variation is \textit{undirected}, so we may use a diagnol
-matrix to represent the distances.  That is, for every $d_{ij}$
-where $i<j$, $d_{ij}$ is the distance between cities $i$ and $j$,
-and every $d_{ij}$ where $i\geq j$, is ignored.
+between each pair of cities.  We will refer to this as
+a \textit{distance matrix} or \textit{cost matrix} and denote
+it as $D = (d_{ij})$, where $d_{ij}$ is the distance between city
+$i$ and city $j$.  If the cost (distance) from city $i$ to city $j$
+is equal to the cost from city $j$ to city $i$ then the TSP variation
+is \textit{undirected} and our distance matrix is symmetric.
 \par
 
-In a \textit{directed} variation of the TSP --- such as one that
+An example of a \textit{directed} variation of the TSP is one that
 optimizes for minimum total airfair to travel a tour by plane,
 where ticket prices from city $i$ to city $j$ is not necessarily
-equal to the ticket price from city $j$ to city $i$ --- we would
-store a cost in every value of $d_{ij}$ where $i\neq j$, rather
-than storing the costs in a diagnol matrix.  This distinction,
-while helpful to be aware of, minimally affects how the problem is
-solved in the methods we will explore.
+equal to the ticket price from city $j$ to city $i$, implying the
+cost matrix is asymmetric.
 \par
 
-See below for a valid input example for an undirected TSP variation.
-Notice, for example, that the distance between city $1$ and city $4$ is
-$d_{1,4}=29$.  If we ran into a case while implementing a TSP algorithm
-where we are finding the distance between $i$ and $j$ but $j>i$, we
-simply retrieve the distance from $d_{ji}$ instead of $d_{ij}$.
+Most exact TSP algorithms can solve both directed and undirected variations,
+while approximation TSP algorithms can typically only solve undirected
+variations.
+\par
+
+See the figure below for a valid input distance matrix for an undirected
+TSP variation.  Notice, for example, that the distance between city $1$
+and city $4$ is $d_{1,4}=d_{4,1}=29$.  If we ran into a case while
+implementing a TSP algorithm
 \par
 
 \begin{align*}
@@ -105,39 +103,56 @@ simply retrieve the distance from $d_{ji}$ instead of $d_{ij}$.
   \begin{blockarray}{cccccc}
     & j_1 & j_2 & j_3 & j_4 & j_5 \\
   \begin{block}{c(ccccc)}
-    i_1 & \cdot & 7 & 37 & 29 & 17 \\
-    i_2 & \cdot & \cdot & 31 & 32 & 34 \\
-    i_3 & \cdot & \cdot & \cdot & 32 & 42 \\
-    i_4 & \cdot & \cdot & \cdot & \cdot & 20 \\
-    i_5 & \cdot & \cdot & \cdot & \cdot & \cdot \\
+    i_1 & 0 & 7 & 37 & 29 & 17 \\
+    i_2 & 7 & 0 & 31 & 32 & 34 \\
+    i_3 & 37 & 31 & 0 & 32 & 42 \\
+    i_4 & 29 & 32 & 32 & 0 & 20 \\
+    i_5 & 17 & 34 & 32 & 20 & 0 \\
   \end{block}
   \end{blockarray}
 \end{align*}
 
+It is common to describe the input of the TSP as a complete graph.
+We define the graph as $G=(V,E)$, where $v_i$ is the $i^{\text{th}}$
+city and $e_ij$ is the distance between city $i$ and city $j$.  Below
+is an example what such a graph could look like:
+
+\tikzstyle{vertex}=[circle, draw, minimum size=1.2cm]
+\tikzstyle{edge}=[draw=black]
+\begin{tikzpicture}[shorten >=1pt, auto, node distance=7cm]
+  \node[vertex](v1) at (6, 4) {$ v_1 $};
+  \node[vertex](v2) at (11, 2) {$ v_2 $};
+  \node[vertex](v3) at (10, -2) {$ v_3 $};
+  \node[vertex](v4) at (2, -2) {$ v_4 $};
+  \node[vertex](v5) at (1, 2) {$ v_5 $};
+
+  \draw[edge] (v1) edge node{\scriptsize 7}  (v2);
+  \draw[edge] (v1) edge node{\scriptsize 37} (v3);
+  \draw[edge] (v1) edge node{\scriptsize 29} (v4);
+  \draw[edge] (v1) edge node{\scriptsize 17} (v5);
+
+  \draw[edge] (v2) edge node{\scriptsize 31} (v3);
+  \draw[edge] (v2) edge node{\scriptsize 32} (v4);
+  \draw[edge] (v2) edge node{\scriptsize 34} (v5);
+
+  \draw[edge] (v3) edge node{\scriptsize 32} (v4);
+  \draw[edge] (v3) edge node{\scriptsize 42} (v5);
+  
+  \draw[edge] (v4) edge node{\scriptsize 42} (v5);
+\end{tikzpicture}
+
 \subsection{Problem Output}
-The output for the TSP is also a matrix with the dimensions
-$N\times N$, where $N$ is the number of cities.  We will define the output as
-the edge matrix $E = (e_{ij})$, where $e_{ij}=1$ if the optimal tour involves
+A common output for a TSP is a matrix with the dimensions $N\times N$, where
+$N$ is the number of cities.  We can define the output as the edge matrix
+$E = (e_{ij})$, where $e_{ij}=1$ if the optimal tour involves
 traveling from city $i$ to city $j$.  $e_{ij}=0$ if meaning we will not
 travel from city $i$ to city $j$ along the optimal tour.
 \par
 
-We use an edge matrix because if we had a graph $G=(V,E)$, $V_i$
-would represent city $i$ and $E_{ij}$ would
-represent traveling from city $i$ to city $j$ along the optimal tour.
-If the graph where visualized, each verticy would be positioned at its
-longitude and latitude coordinates and a segment would connect each pair
-of verticies $v_i$ and $v_j$ where $e_{ij}=1$.
-\par
-
-Below is an example of a valid output for our TSP variation.  Notice that
-$e_{3,4}=1$ implying our optimal tour involves traveling from city $3$ to
-city $4$.  Observe that when $i<j$, just as the distance matrix $d_{ij}$,
-the value in $e_{ij}$ is not used, resulting in another diagonal matrix.
-Observe that $e_1$ has two columns that are $1$.  This will always be the
-case for a single $e_i$ where $i$ is the city at we we begin and terminate
-the tour.  In this case, and throughout the paper, the optimal tour will
-always start and end on the first city.
+Below is an example of a valid edge matrix output for our TSP variation.
+Notice that $e_{3,4}=1$ implying our optimal tour involves traveling from
+city $3$ to city $4$.  Since this output is for an undirected TSP instance,
+$e_{4,3}$ is also $1$.
 \par
 
 \begin{align*}
@@ -145,14 +160,44 @@ always start and end on the first city.
   \begin{blockarray}{cccccc}
     & j_1 & j_2 & j_3 & j_4 & j_5 \\
   \begin{block}{c(ccccc)}
-    i_1 & \cdot & 1 & 0 & 0 & 1 \\
-    i_2 & \cdot & \cdot & 1 & 0 & 0 \\
-    i_3 & \cdot & \cdot & \cdot & 1 & 0 \\
-    i_4 & \cdot & \cdot & \cdot & \cdot & 1 \\
-    i_5 & \cdot & \cdot & \cdot & \cdot & \cdot \\
+    i_1 & 0 & 1 & 0 & 0 & 1 \\
+    i_2 & 1 & 0 & 1 & 0 & 0 \\
+    i_3 & 0 & 1 & 0 & 1 & 0 \\
+    i_4 & 0 & 0 & 1 & 0 & 1 \\
+    i_5 & 1 & 0 & 0 & 1 & 0 \\
   \end{block}
   \end{blockarray}
 \end{align*}
+
+TSP algorithms can also about a graph $G=(V,E)$, where $V_i$
+represents city $i$ and $E_{ij}$ represents traveling from city $i$ to
+city $j$ along the optimal tour, where the weight is the distance between
+the two.  If the graph where visualized, each verticy would be positioned
+at its longitude and latitude coordinates and a segment would connect each pair
+of verticies $v_i$ and $v_j$ where $e_{ij}=1$.  The single path in the graph
+represents the optimal tour.
+\par
+
+\tikzstyle{vertex}=[circle, draw, minimum size=1.2cm]
+\tikzstyle{edge}=[draw=black]
+\begin{tikzpicture}[shorten >=1pt, auto, node distance=7cm]
+  \node[vertex](v1) at (6, 4) {$ v_1 $};
+  \node[vertex](v2) at (11, 2) {$ v_2 $};
+  \node[vertex](v3) at (10, -2) {$ v_3 $};
+  \node[vertex](v4) at (2, -2) {$ v_4 $};
+  \node[vertex](v5) at (1, 2) {$ v_5 $};
+
+  \draw[edge] (v1) edge node{\scriptsize 7}  (v2);
+  \draw[edge] (v2) edge node{\scriptsize 31} (v3);
+  \draw[edge] (v3) edge node{\scriptsize 32} (v4);
+  \draw[edge] (v4) edge node{\scriptsize 42} (v5);
+  \draw[edge] (v5) edge node{\scriptsize 17} (v1);
+\end{tikzpicture}
+
+Another way to represent the optimal tour is with a list
+$T$, where for every $i \lte n$, $(i-1, i)$ represents
+traveling from city $i-1$ to city $i$ along the optimal
+tour.  This paper will primarily use this type of output.
 
 
 \section{A Naive Brute Force Algorithm}
@@ -160,7 +205,7 @@ always start and end on the first city.
 The brute force method for solving the Traveling Salesman Problem has exactly
 two redeeming qualities: (1) it is quite simple, making implementation
 trivial, and (2) it will produce the correct tour in every TSP instance.
-Unfortunately, for instances that contain more than roughly 10 cities, the
+Unfortunately, for instances that contain more than roughly 20 cities, the
 algorithm does not finish execution in a reasonable time.  Analyzing the
 pseudocode in (2.2), we can get a good idea of why this is the case.
 \par
@@ -184,7 +229,7 @@ pseudocode in (2.2), we can get a good idea of why this is the case.
             \End
        \End
 
-\li    \Return $\proc{MAKE-EDGE-MATRIX}(\id{min-tour})$
+\li    \Return $\id{min-tour}$
 \end{codebox}
  
 On line $1$, we assign $\id{T}$ to a list containing each permutation of
@@ -208,7 +253,7 @@ which is simply:
 \li $\id{dist} \gets 0$
 \li \For $\id{i} \gets 2$ to $\attrib{t}{length}$
 \li   \Do
-$\id{dist} \gets \id{dist} + D_{\proc{min}(t_{i-1}, t_i), \proc{max}(t_{i-1}, t_i)}$
+$\id{dist} \gets \id{dist} + D_{i-1,i}$
        \End
 \li    \Return $\id{dist}$
 \end{codebox}
@@ -218,9 +263,7 @@ $\id{dist} \gets \id{dist} + D_{\proc{min}(t_{i-1}, t_i), \proc{max}(t_{i-1}, t_
 
 If $\id{dist} < \id{min-dist}$, we update
 $\id{min-dist}$ and $\id{min-tour}$.  Once the loop is finished, we
-return an edge matrix to represent the optimal tour using the
-$\proc{MAKE-EDGE-MATRIX}()$ procedure, which creates an edge matrix from a tour
-represented as a list.
+return the optimal tour.
 \par
 
 
@@ -266,12 +309,13 @@ number of cities.
 \subsection{Overview}
 While the brute force algorithm is simple and correct, it
 is far too slow for larger inputs.  Fortunately, there are multiple
-alternative TSP algorithms with a non-polynomial runtime
+alternative TSP algorithms with a runtime
 that is better than $O(n!)$.  We will explore in detail the
-\textit{Held--Karp} algorithm, an $O(2^n)$ solution that uses
-dynamic programming \cite{heldkarp}.  Then we will look at it
-to the MST approximation algorithm and discuss the advantages
-of each approach. 
+\textit{Held--Karp} algorithm, an $O(n^2 2^n)$ solution that uses
+dynamic programming \cite{heldkarp}.  Then we will look at the Nearest
+Neighbor algorithm and Christofides algorithm, both of which are polynomial
+time approximation algorithms.  We will and discuss the advantages
+and drawbacks of each approach. 
 
 \subsection{Held--Karp}
 The Held--Karp algorithm is an $O(2^n)$ approach to solving the TSP\@.
@@ -303,20 +347,22 @@ $H[(S, x)]$.  Otherwise,  we will compute the cost and store it in $H$.
 
 This alone does not solve the original problem.  We still need to return 
 the optimal tour, not just its distance.  We can find the optimal tour
-by backtracing through $H$.  We define the optimal tour as $P$ and $B(v)$
-as a recurrence that backtraces through $H$:
+by using an additional lookup table, $P$, that maps $(S, x)$ to the optimal
+$(S-\{x\}, k)$ at each step.  We can obtain the final optimal tour by
+backtracking through $P$.  We define the optimal tour as $T$ and $B(v)$ as a
+recurrence that backtracks through $P$:
 
 \begin{align*}
   B(v)=\begin{cases}
-    B(H[v])     & \text{if } v \text{\ in\ } H \\
+    B(P[v])     & \text{if } v \text{\ in\ } P \\
     \const{nil} & \text{otherwise} 
   \end{cases}
 \end{align*}
 
-We fill in the values of $P$ by calling $B((\{1,\dots,n\}, 1))$.  On each
-recurrence where $v$ is in $H$, we append the second value from the tuple $v$
-to $P$.  When $v$ is not in $H$ and $\const{nil}$ is returned from $B(v)$, we
-append $1$ to $P$, resulting in the optimal tour.
+We fill in the values of $T$ by calling $B((\{1,\dots,n\}, 1))$.  On each
+recurrence where $v$ is in $P$, we append the second value in $v$ (the $k$
+value) to $T$.  When $v$ is not in $H$ and $\const{nil}$ is returned
+from $B(v)$, we append $1$ to $P$, resulting in the optimal tour.
 \par
 
 \subsection{Christofides}
@@ -389,7 +435,98 @@ optimizing for correctness over speed and problem size in this paper and will co
 to explore the Held--Karp algorithm.
 
 \subsection{Held-Karp Pseudocode}
+Below is the Pseudocode for the Held-Karp algorithm.  It is an iterative
+dynamic programming implementation of the recurrence we defined in (3.2).
+It uses two lookup tables, $C$ and $P$, for computing the optimal distances
+and backtracking to obtain the optimal path, respectively.
+\par
 
+\vspace{.27cm}
+\hrule
+\begin{codebox}
+\Procname{$\proc{HELD-KARP}(D:$ distance matrix$)$}
+\li $\id{n} \gets \attrib{D}{length}$
+\li $\id{C} \gets$ a lookup table that maps $(S, x)$ to the optimal cost
+\li $\id{P} \gets$ a lookup table that maps $(S, x)$ to the optimal $(S-\{x\}, k)$
+\li
+\li \For $\id{k} \gets 2$ to $n$
+\li   \Do
+	$\id{C} \gets D_{1k}$
+\li     $\id{P} \gets (\{\}, 1)$
+      \End
+\li
+\li \For $\id{size} \gets 2$ to $n$
+\li   \Do
+	\For $\id{x} \gets 1$ to $n$
+\li	  \Do
+	    \If $size \isequal n$ and $x \neq 1$
+\li	      \Then
+		\textbf{continue}
+	      \End
+\li	    \For $\id{S} \gets \proc{SUBSETS}(\{2,\dots,n\}, size)$
+\li	      \Do
+		$\id{opt-k} \gets \const{nil}$
+\li		$\id{opt-dist} \gets \infty$
+\li		$\id{opt-subset} \gets \const{nil}$
+\li		\For $k$ in $S-\{x\}$
+\li		  \Do
+		    $\id{dist} \gets \id{C}[(S-\{x\}, \id{k})] + D_{xk}$
+\li		    \If $dist < \id{opt-dist}$
+\li		      \Then
+			$\id{opt-k} \gets k$
+\li			$\id{opt-dist} \gets dist$
+\li			$\id{opt-subset} \gets S$
+		      \End
+		  \End
+\li
+\li		  $\id{C}[(subset, x)] \gets opt-dist$
+\li		  $\id{P}[(subset, x)] \gets (opt-subset, opt-k)$
+	      \End
+	  \End
+      \End
+
+\li
+\li $T = []$
+\li $\id{v} \gets (\{1,\dots,n\}, 1)$
+\li \While $\id{v} \neq \const{nil}$
+\li   \Do
+	$\proc{\attrib{T}{append}}(v[2])$
+\li	$\id{S} \gets \id{T}[v]$
+      \End	
+\li
+\li \Return \id{T}
+\end{codebox}
+\vspace{.27cm}
+\hrule
+
+On lines 5-7, we add our base cases to the lookup tables.  In the main loop on
+lines 9-25, we build the lookup tables in a bottom-up dynamic programming fashion.
+Notice on lines 11 and 12 we continue when the subset size is $n$ and $x \neq 1$.
+This acheives the effect of beginning our recurrence from (3.2) with $(\{1,\dots,n\}, 1)$,
+ensuring we're only computing optimal paths that start at $1$.  Finally, on lines 27-31
+we backtrack through our lookup table $P$ that stores the optimal $(S-\{x\}, k)$
+for a given $(S, x)$, appending each optimal $k$ value to the optimal tour $T$.
+
+\subsection{Held-Karp Runtime}
+We will show that the Held-Karp algorithm is an improvement over the brute force
+approach by proving the runtime of Held-Karp is $O(n^{2}2^n)$, which is better than
+the runtime of brute force, $O(n!)$.  Observe from the pseudocode that our algorithm
+involves computing every possible subset of $\{1,\dots,n\}$, where $n$ is the number
+of cities.  Knowing this, we can prove the runtime by proving a set with $n$ elements
+has $2^n$ subsets using induction.
+
+\begin{proof}
+  (Induction) For our basis step, consider that an empty set $\varnothing$ has $1$
+  subset (itself).  $2^n = 2^0 = 1$, so a set with $0$ elements has $2^0$ subsets.\
+  For induction, suppose a $k$-element set has $2^k$ subsets.  We will show every
+  $(k+1)$-element subset has $2^(k+1)$ subsets.  Let $A=\{a_1,a_2,\dots,a_k, b\}$,
+  notice it contains $k+1$ elements.  We parition the subsets of $A$ into two sets
+  $B$ and $C$, where $B$ contains the subsets that contain $b$ and $C$ contains
+  the subsets that don't contain $b$.  $C$ contains every subset of $A-{b}$, so it
+  has $2^k$ elements.  By construction, it follows that $B$ must have the same number
+  of elements as $C$, so it also has $2^k$ elements.  Since $B$ and $C$ are independent
+  sets, the size of $B\union C$ is $2^k + 2^k = 2^{k+1}$.
+\end{proof}
 
 
 

@@ -4,7 +4,7 @@ from itertools import combinations
 
 def held_karp(distance_matrix):
     """
-    Solve the TSP using the held_karp algorihtm.  
+    Solve the TSP using the held-karp algorihtm.  
     """
     # Distance helper function. This is necessary
     # since we have a diagonal distance matrix.
