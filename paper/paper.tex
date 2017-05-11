@@ -53,12 +53,12 @@
 \section*{Introduction}
 The Traveling Salesman Problem (TSP) is a classic NP---hard problem
 in the field of computer science.  Like every other NP--hard problem,
-it can only be solved in exponential runtime, or approximated in polynomail
+it can only be solved in exponential runtime, or approximated in polynomial
 runtime.  In this paper, we will obtain an understanding of the TSP problem
 by explaining what it is, examining its input and output, and looking at
 different algorithms that can obtain or approximate a solution.  We will
 present and explain a naive brute force solution to the problem and analyze
-its efficiency.  Then we will look at alternative TSP algorithms and discuess
+its efficiency.  Then we will look at alternative TSP algorithms and discuss
 the use cases and advantages of each approach.  We will choose one of the
 algorithms and present its pseudocode, as well as detailed mathematical
 notation to gain a better understanding of how it computes the solution.
@@ -84,7 +84,7 @@ is \textit{undirected} and our distance matrix is symmetric.
 \par
 
 An example of a \textit{directed} variation of the TSP is one that
-optimizes for minimum total airfair to travel a tour by plane,
+optimizes for minimum total airfare to travel a tour by plane,
 where ticket prices from city $i$ to city $j$ is not necessarily
 equal to the ticket price from city $j$ to city $i$, implying the
 cost matrix is asymmetric.
@@ -172,12 +172,12 @@ $e_{4,3}$ is also $1$.
   \end{blockarray}
 \end{align*}
 
-TSP algorithms can also about a graph $G=(V,E)$, where $V_i$
+TSP algorithms can also output a graph $G=(V,E)$, where $V_i$
 represents city $i$ and $E_{ij}$ represents traveling from city $i$ to
 city $j$ along the optimal tour, where the weight is the distance between
-the two.  If the graph where visualized, each verticy would be positioned
+the two.  If the graph where visualized, each vertex would be positioned
 at its longitude and latitude coordinates and a segment would connect each pair
-of verticies $v_i$ and $v_j$ where $e_{ij}=1$.  The single path in the graph
+of vertices $v_i$ and $v_j$ where $e_{ij}=1$.  The single path in the graph
 represents the optimal tour.
 \par
 
@@ -323,7 +323,7 @@ and drawbacks of each approach.
 \subsection{Held--Karp}
 The Held--Karp algorithm is an $O(n^2 2^n)$ approach to solving the TSP\@.
 It is not fast enough to solve TSP instances with a large number of
-cities, but the solution for the instances it can solve is guarenteed
+cities, but the solution for the instances it can solve is guaranteed
 to be correct.  The algorithm works as follows:
 \par
 
@@ -369,13 +369,13 @@ from $B(v)$, we append $1$ to $P$, resulting in the optimal tour.
 \par
 
 \subsection{Christofides}
-Christofide's algorithm is an $O(n^3)$ approximation algorithm that guarentees
+Christofide's algorithm is an $O(n^3)$ approximation algorithm that guarantees
 the cost of its solution will be strictly within $3/2$ of the optimal solution
 cost.  The algorithm only works on a symmetric distance matrix that satisfies
 the triangle inequality \cite{nicos}.  That is, a distance matrix $D=d_{ij}$
 may be used if the shortest path to reach every $j$ from
 $i$ involves traveling directly to $j$ from $i$, rather than through a path that
-includes more than two verticies.
+includes more than two vertices.
 \par
 
 The algorithm works as follows: Given a distance matrix $D=d_{ij}$ and size $n$,
@@ -383,9 +383,9 @@ let $G=(V,E)$ where $v_i=i$ for all $i\in [1,\dots,n]$ and $e_{ij}=d_{ij}$.  The
 optimal tour starting at $v_1$ is obtained using the following steps:
 \begin{enumerate}
   \item Generate a minimum spanning tree, $MST$, rooted at $v_1$ using Prim's algorithm.
-  \item Perform a preorder traversal on $MST$ and append the verticies in the order they 
+  \item Perform a preorder traversal on $MST$ and append the vertices in the order they 
     are visited to list a $T$.
-  \item For each verticy in $T$, append it to $T'$ only when it is first visited.  This 
+  \item For each vertex in $T$, append it to $T'$ only when it is first visited.  This 
     removes duplicates from $T$ resulting in the optimal tour.
 \end{enumerate}
 
@@ -508,7 +508,7 @@ and backtracking to obtain the optimal path, respectively.
 On lines 5-7, we add our base cases to the lookup tables.  In the main loop on
 lines 9-25, we build the lookup tables in a bottom-up dynamic programming fashion.
 Notice on lines 11 and 12 we continue when the subset size is $n$ and $x \neq 1$.
-This acheives the effect of beginning our recurrence from (3.2) with $(\{1,\dots,n\}, 1)$,
+This achieves the effect of beginning our recurrence from (3.2) with $(\{1,\dots,n\}, 1)$,
 ensuring we're only computing optimal paths that start at $1$.  Finally, on lines 27-31
 we backtrack through our lookup table $P$ that stores the optimal $(S-\{x\}, k)$
 for a given $(S, x)$, appending each optimal $k$ value to the optimal tour $T$.
@@ -529,7 +529,7 @@ runtime by proving a set with $n$ elements has $2^n$ subsets using induction.
   subset (itself).  $2^n = 2^0 = 1$, so a set with $0$ elements has $2^0$ subsets.\
   For induction, suppose a $k$-element set has $2^k$ subsets.  We will show every
   $(k+1)$-element subset has $2^(k+1)$ subsets.  Let $A=\{a_1,a_2,\dots,a_k, b\}$,
-  notice it contains $k+1$ elements.  We parition the subsets of $A$ into two sets
+  notice it contains $k+1$ elements.  We partition the subsets of $A$ into two sets
   $B$ and $C$, where $B$ contains the subsets that contain $b$ and $C$ contains
   the subsets that don't contain $b$.  $C$ contains every subset of $A-{b}$, so it
   has $2^k$ elements.  By construction, it follows that $B$ must have the same number
@@ -625,15 +625,58 @@ Our program can also produce a graph:
 \newpage
 \appendix
 \section*{Appendices}
+\newpage
 \addcontentsline{toc}{section}{Appendices}
 \renewcommand{\thesubsection}{\Alph{subsection}}
 
 \subsection{Collaboration}
-  I collaborated with Grant Eaton and Luke Artnak.
+  I collaborated with on this project Grant Eaton and Luke Artnak.
+  \par
+
+  Grant helped me search for primary sources to use in this paper.
+  He also made a suggestion
+  for space optimization on my Held-Karp implementation, which
+  I agreed with, but did not implement.  I helped Grant
+  with various Latex tasks and getting Python networkx code
+  to work.
+
+  Luke helped me analyze the runtime of the Held-Karp algorithm,
+  which helped me greatly in writing the runtime proof.  He also
+  made some suggestions on how I could make my Held-Karp python code
+  more readable, which again, I did not follow through with.  I helped
+  Luke get python networkx code working, although he ended up
+  switching to JavaScript later on.
+
+  \par
 
 \newpage
-\subsection{Code Demonstration}
-  \inputminted[frame=lines,linenos=true]{python}{../src/brute_force.py}
+\subsection{Source Code}
+  Brute Force Implementation
+  \inputminted[linenos=true]{python}{../src/brute_force.py}
+  \newpage
+  Held-Karp Implementation
+  \inputminted[linenos=true]{python}{../src/held_karp.py}
+  The output of the main program running on my machine.
+  Yellow values are estimations.
+  \includegraphics[scale=0.5]{screenshot.png}
+
+\newpage
+\subsection{Requirements}
+For each of the requirements of the paper, I have given
+the section where that requirement was met.
+\begin{enumerate}
+  \item Requirement: Describe the problem.  See sections 1.1, 1.2, and 1.3.
+  \item Requirement: Explain your naive / BF implementation.  See section 2.
+  \item Requirement: Motivate a solution that improves on the naive solution.
+    See section 3.2 for better solution and 3.5 for a comparison.
+  \item Requirement: Defend your solution against prior art: All of section
+    3 contains cited work, primarily in section 3.5.
+  \item Requirement: explain your improved solution by presenting pseudocode.  See section 3.6.
+  \item Requirement: Provide a proof that your solution has some nontrivial property.  See section 3.7.
+  \item Requirement: Experimentally compare your solution to BF / Naive approaches.  See section 4.
+  \item Requirement: Do version A or B of the assignment.  I've done A by choosing the Held-Karp algorithm.
+    Section 3.5 is explicitly states this paper is concerned with correctness, rather than speed.
+\end{enumerate}
 
 \newpage
 \bibliographystyle{apacite}
